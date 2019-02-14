@@ -20,6 +20,7 @@
 #include "draco/io/obj_encoder.h"
 #include "draco/io/parser_utils.h"
 #include "draco/io/ply_encoder.h"
+#include "draco/io/stl_encoder.h"
 
 namespace {
 
@@ -166,6 +167,17 @@ int main(int argc, char **argv) {
         return -1;
       }
     }
+  } else if (extension == ".stl") {
+    if (mesh) {
+      draco::StlEncoder stl_encoder;
+      if (!stl_encoder.EncodeToFile(*mesh, options.output)) {
+        printf("Failed to store the decoded point cloud as OBJ.\n");
+        return -1;
+      }
+    } else {
+      printf(".stl file format only valid for storing mesh data.");
+    }
+    
   } else {
     printf(
         "Invalid extension of the output file. Use either .ply, .obj, or "
