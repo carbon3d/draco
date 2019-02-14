@@ -19,6 +19,7 @@
 #include "draco/io/file_utils.h"
 #include "draco/io/obj_decoder.h"
 #include "draco/io/ply_decoder.h"
+#include "draco/io/stl_decoder.h"
 
 namespace draco {
 
@@ -52,6 +53,12 @@ StatusOr<std::unique_ptr<Mesh>> ReadMeshFromFile(const std::string &file_name,
     // Wavefront PLY file format.
     PlyDecoder ply_decoder;
     DRACO_RETURN_IF_ERROR(ply_decoder.DecodeFromFile(file_name, mesh.get()));
+    return std::move(mesh);
+  }
+  if (extension == "stl") {
+    // STL file format.
+    StlDecoder stl_decoder;
+    DRACO_RETURN_IF_ERROR(stl_decoder.DecodeFromFile(file_name, mesh.get()));
     return std::move(mesh);
   }
 
