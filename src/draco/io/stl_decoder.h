@@ -23,7 +23,7 @@
 namespace draco {
 
 // Decodes 3D Systems stl file format.  Decodes either the ascii or binary stl file.
-// Only normals and vertex locations are decoded.
+// Only normals and vertex locations are decoded. STL extensions are not supported.
 
 class StlDecoder {
  public:

@@ -266,7 +266,6 @@ Status StlDecoder::DecodeInternal() {
                        {{PointIndex(start_index), PointIndex(start_index + 1),
                                PointIndex(start_index + 2)}});
   }
-  /**
   std::cout << "Starting dedup" << std::endl;
 #ifdef DRACO_ATTRIBUTE_VALUES_DEDUPLICATION_SUPPORTED
   // First deduplicate attribute values.
@@ -279,7 +278,7 @@ Status StlDecoder::DecodeInternal() {
   // Also deduplicate vertex indices.
   out_mesh_->DeduplicatePointIds();
 #endif
-  **/
+
   for (size_t i = 0; i < attribute_element_types_.size(); ++i) {
     if (attribute_element_types_[i] >= 0) {
       out_mesh_->SetAttributeElementType(
