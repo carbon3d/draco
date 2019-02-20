@@ -227,7 +227,6 @@ Status StlDecoder::DecodeInternal() {
   norm_va.Init(GeometryAttribute::NORMAL, nullptr, 3, DT_FLOAT32, false,
                DataTypeLength(DT_FLOAT32) * 3, 0);
   const int norm_att_id = out_mesh_->AddAttribute(norm_va, true, out_mesh_->num_points());
-
   if (norm_att_id >= 2 || pos_att_id) {
     return Status(Status::IO_ERROR, "The programmers understanding of this library is poor");
   }
