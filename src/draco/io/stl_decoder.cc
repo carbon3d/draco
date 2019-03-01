@@ -27,7 +27,8 @@ namespace draco {
 StlDecoder::StlDecoder()
     : num_stl_faces_(0),
       is_binary_mode_(true),
-      attribute_element_types_(2, -1),
+      //attribute_element_types_(2, -1),
+      attribute_element_types_(1, -1),
       out_mesh_(nullptr)
 {}
 
@@ -216,18 +217,18 @@ Status StlDecoder::DecodeInternal() {
   pos_va.Init(GeometryAttribute::POSITION, nullptr, 3, DT_FLOAT32, false,
               DataTypeLength(DT_FLOAT32) * 3, 0);
   const int pos_att_id = out_mesh_->AddAttribute(pos_va, true, out_mesh_->num_points());
+  //GeometryAttribute norm_va;
+  //norm_va.Init(GeometryAttribute::NORMAL, nullptr, 3, DT_FLOAT32, false,
+  //             DataTypeLength(DT_FLOAT32) * 3, 0);
+  //const int norm_att_id = out_mesh_->AddAttribute(norm_va, true, out_mesh_->num_points());
 
-  GeometryAttribute norm_va;
-  norm_va.Init(GeometryAttribute::NORMAL, nullptr, 3, DT_FLOAT32, false,
-               DataTypeLength(DT_FLOAT32) * 3, 0);
-  const int norm_att_id = out_mesh_->AddAttribute(norm_va, true, out_mesh_->num_points());
-  if (norm_att_id >= 2 || pos_att_id) {
-    return Status(Status::IO_ERROR, "The programmers understanding of this library is poor");
-  }
+  //if (norm_att_id >= 2 || pos_att_id) {
+  //  return Status(Status::IO_ERROR, "The programmers understanding of this library is poor");
+  //}
   PointAttribute *const pos_att = out_mesh_->attribute(pos_att_id);
-  PointAttribute *const norm_att = out_mesh_->attribute(norm_att_id);
-  attribute_element_types_[pos_att_id] = MESH_CORNER_ATTRIBUTE;
-  attribute_element_types_[norm_att_id] = MESH_FACE_ATTRIBUTE;
+  //PointAttribute *const norm_att = out_mesh_->attribute(norm_att_id);
+  attribute_element_types_[pos_att_id] = MESH_VERTEX_ATTRIBUTE;
+  //attribute_element_types_[norm_att_id] = MESH_FACE_ATTRIBUTE;
   
   for (int i = 0; i < num_stl_faces_; ++i) {
     // Read a triangle face
@@ -243,14 +244,18 @@ Status StlDecoder::DecodeInternal() {
     // Store the values in the mesh
     FaceIndex face_id(i);
     const int start_index = 3 * face_id.value();
-    pos_att->SetAttributeValue(AttributeValueIndex(start_index), tmp_v0.data());
-    pos_att->SetAttributeValue(AttributeValueIndex(start_index + 1), tmp_v1.data());
-    pos_att->SetAttributeValue(AttributeValueIndex(start_index + 2), tmp_v2.data());
-
-    norm_att->SetAttributeValue(AttributeValueIndex(start_index), tmp_norm.data());
-    norm_att->SetAttributeValue(AttributeValueIndex(start_index + 1), tmp_norm.data());
-    norm_att->SetAttributeValue(AttributeValueIndex(start_index + 2), tmp_norm.data());
-
+    if (tmp_norm.Dot( CrossProduct( tmp_v2 - tmp_v1, tmp_v0 - tmp_v1)) > 0) {
+      pos_att->SetAttributeValue(AttributeValueIndex(start_index), tmp_v0.data());
+      pos_att->SetAttributeValue(AttributeValueIndex(start_index + 1), tmp_v1.data());
+      pos_att->SetAttributeValue(AttributeValueIndex(start_index + 2), tmp_v2.data());
+    } else {
+      pos_att->SetAttributeValue(AttributeValueIndex(start_index), tmp_v1.data());
+      pos_att->SetAttributeValue(AttributeValueIndex(start_index + 1), tmp_v0.data());
+      pos_att->SetAttributeValue(AttributeValueIndex(start_index + 2), tmp_v2.data());
+    }
+    //norm_att->SetAttributeValue(AttributeValueIndex(start_index), tmp_norm.data());
+    //norm_att->SetAttributeValue(AttributeValueIndex(start_index + 1), tmp_norm.data());
+    //norm_att->SetAttributeValue(AttributeValueIndex(start_index + 2), tmp_norm.data());
     out_mesh_->SetFace(face_id,
                        {{PointIndex(start_index), PointIndex(start_index + 1),
                                PointIndex(start_index + 2)}});
