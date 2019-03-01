@@ -88,23 +88,20 @@ bool StlEncoder::EncodeInternal() {
   for (size_t i_face = 0; i_face < in_mesh_->num_faces(); ++i_face) {
     // we assume this is running on a little endian machine
     Mesh::Face face = in_mesh_->face(FaceIndex(i_face));
+    Vector3f vs[3];
+    for (int i_vert = 0; i_vert < 3; ++i_vert) {
+      pos_att->GetMappedValue(face[i_vert], &vs[i_vert]);      
+    }
     if (has_norm) {
       norm_att->GetMappedValue(face[0], &tmp_value);
       if (! EncodeFloatList(&tmp_value[0], 3)) return false;
     } else {
-      Vector3f v0;
-      Vector3f v1;
-      Vector3f v2;
-      pos_att->GetMappedValue(face[0], &v0);
-      pos_att->GetMappedValue(face[1], &v1);
-      pos_att->GetMappedValue(face[2], &v2);
-      Vector3f norm = CrossProduct(v2 - v1, v0 - v1);
+      Vector3f norm = CrossProduct(vs[2] - vs[1], vs[0] - vs[1]);
       norm.Normalize();
       if (! EncodeFloatList(&norm[0], 3)) return false;       
     }    
     for (int i_vert = 0; i_vert < 3; ++i_vert) {
-      pos_att->GetMappedValue(face[i_vert], &tmp_value);
-      if (! EncodeFloatList(&tmp_value[0], 3)) return false; 
+      if (! EncodeFloatList(&(vs[i_vert][0]), 3)) return false; 
     }
     uint16_t blank = 0;
     if (! buffer()->Encode(&blank, 2)) return false;
