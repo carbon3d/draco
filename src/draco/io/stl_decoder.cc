@@ -22,8 +22,6 @@
 #include "draco/io/file_utils.h"
 #include "draco/io/parser_utils.h"
 
-#include <iostream>
-
 namespace draco {
 
 StlDecoder::StlDecoder()
@@ -90,7 +88,6 @@ Status StlDecoder::ParseHeader() {
         buffer()->StartDecodingFrom(buffer_name_seek_point);
       }
     } else {
-      std::cout << " WE SHALL NAME OUR SOLID " << tmp_str << std::endl;
       solid_name_ = tmp_str;
     }
   } else {
@@ -140,7 +137,6 @@ Status StlDecoder::ParseAsciiFace(Vector3f* v0, Vector3f* v1, Vector3f* v2, Vect
     std::string tmp_str;
     if (!parser::ParseString(buffer(), &tmp_str)) return false;
     if (tmp_str != expected) {
-      std::cout << "Expected '" << expected << "' Got '" << tmp_str << "'" << std::endl;
       return false;
     }
     return true;
@@ -198,9 +194,7 @@ Status StlDecoder::DecodeInternal() {
   if (! status.ok()) return status;
   if (! is_binary_mode_) {
     // For the ASCII formatted STL file we do not know how many triangles are specified in the file
-    // without reading the entire file.  Fortunately, the ascii encoding is so innefficient we
-    // can, hopefully, assume that few enough vertices are stored that
-    // an extra copy of the vertex information will not require too much memory use
+    // without reading the entire file.
     bool is_valid_triangle;
     Status status;
     do {
@@ -245,10 +239,6 @@ Status StlDecoder::DecodeInternal() {
       tmp_v0 = tmp_three_vec_storage[4 * i + 1];
       tmp_v1 = tmp_three_vec_storage[4 * i + 2];
       tmp_v2 = tmp_three_vec_storage[4 * i + 3];
-      std::cout << "Norm " << tmp_norm[0] << " " << tmp_norm[1] << " " << tmp_norm[2] << std::endl;
-      std::cout << "V0 " << tmp_v0[0] << " " << tmp_v0[1] << " " << tmp_v0[2] << std::endl;
-      std::cout << "V1 " << tmp_v1[0] << " " << tmp_v1[1] << " " << tmp_v1[2] << std::endl;
-      std::cout << "V2 " << tmp_v2[0] << " " << tmp_v2[1] << " " << tmp_v2[2] << std::endl;
     }
     // Store the values in the mesh
     FaceIndex face_id(i);
@@ -265,19 +255,15 @@ Status StlDecoder::DecodeInternal() {
                        {{PointIndex(start_index), PointIndex(start_index + 1),
                                PointIndex(start_index + 2)}});
   }
-  std::cout << "Starting dedup" << std::endl;
 #ifdef DRACO_ATTRIBUTE_VALUES_DEDUPLICATION_SUPPORTED
   // First deduplicate attribute values.
-  std::cout << " dedup vals " << std::endl;    
   if (!out_mesh_->DeduplicateAttributeValues())
     return status;
 #endif
 #ifdef DRACO_ATTRIBUTE_INDICES_DEDUPLICATION_SUPPORTED
-  std::cout << " dedup pnts " << std::endl;  
   // Also deduplicate vertex indices.
   out_mesh_->DeduplicatePointIds();
 #endif
-
   for (size_t i = 0; i < attribute_element_types_.size(); ++i) {
     if (attribute_element_types_[i] >= 0) {
       out_mesh_->SetAttributeElementType(
@@ -285,7 +271,6 @@ Status StlDecoder::DecodeInternal() {
           static_cast<MeshAttributeElementType>(attribute_element_types_[i]));
     }
   }
-  std::cout << " Done dedup " << std::endl;
-  return status;
+ return status;
  }
 }  // namespace draco
