@@ -53,10 +53,12 @@ void AttributeQuantizationTransform::CopyToAttributeTransformData(
 void AttributeQuantizationTransform::SetParameters(int quantization_bits,
                                                    const float *min_values,
                                                    int num_components,
-                                                   float range) {
+                                                   float range,
+                                                   float delta) {
   quantization_bits_ = quantization_bits;
   min_values_.assign(min_values, min_values + num_components);
   range_ = range;
+  quantization_delta_ = delta;
 }
 
 bool AttributeQuantizationTransform::ComputeParameters(

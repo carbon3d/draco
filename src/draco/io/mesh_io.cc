@@ -73,4 +73,41 @@ StatusOr<std::unique_ptr<Mesh>> ReadMeshFromFile(const std::string &file_name,
   return std::move(mesh);
 }
 
+
+StatusOr<std::unique_ptr<Mesh>> ReadMeshFromBuffer(DecoderBuffer* buffer,
+                                                   const Options &options,
+                                                   const std::string extension) {
+  std::unique_ptr<Mesh> mesh(new Mesh());
+  // Analyze file extension.
+  if (extension == "obj") {
+    // Wavefront OBJ file format.
+    ObjDecoder obj_decoder;
+    obj_decoder.set_use_metadata(options.GetBool("use_metadata", false));
+    const Status obj_status = obj_decoder.DecodeFromBuffer(buffer, mesh.get());
+    if (!obj_status.ok())
+      return obj_status;
+    return std::move(mesh);
+  }
+  if (extension == "ply") {
+    // Wavefront PLY file format.
+    PlyDecoder ply_decoder;
+    DRACO_RETURN_IF_ERROR(ply_decoder.DecodeFromBuffer(buffer, mesh.get()));
+    return std::move(mesh);
+  }
+  if (extension == "stl") {
+    // STL file format.
+    StlDecoder stl_decoder;
+    DRACO_RETURN_IF_ERROR(stl_decoder.DecodeFromBuffer(buffer, mesh.get()));
+    return std::move(mesh);
+  }
+  // Otherwise for not a known file assume the file was encoded with one of the
+  // draco encoding methods.
+  Decoder decoder;
+  auto statusor = decoder.DecodeMeshFromBuffer(buffer);
+  mesh = std::move(statusor).value();
+  if (! statusor.ok() || mesh == nullptr) return statusor;
+  return std::move(mesh);
+}
+
+
 }  // namespace draco
