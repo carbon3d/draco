@@ -37,9 +37,8 @@ class AttributeQuantizationTransform : public AttributeTransform {
   void CopyToAttributeTransformData(
       AttributeTransformData *out_data) const override;
 
-  // If the delta is greater than 0 it overrides the quantization_bits specification
   void SetParameters(int quantization_bits, const float *min_values,
-                     int num_components, float range, float delta = -1);
+                     int num_components, float range);
 
   bool ComputeParameters(const PointAttribute &attribute,
                          const int quantization_bits);
@@ -72,10 +71,6 @@ class AttributeQuantizationTransform : public AttributeTransform {
 
   // Bounds of the dequantized attribute (max delta over all components).
   float range_;
-
-  // Sets the desired delta for quantization iff greater than 0
-  float quantization_delta_;
-  
 };
 
 }  // namespace draco

@@ -109,5 +109,4 @@ StatusOr<std::unique_ptr<Mesh>> ReadMeshFromBuffer(DecoderBuffer* buffer,
   return std::move(mesh);
 }
 
-
 }  // namespace draco
