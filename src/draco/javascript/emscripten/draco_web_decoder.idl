@@ -179,6 +179,10 @@ interface Decoder {
                                           PointCloud out_point_cloud);
   [Const] Status DecodeBufferToMesh(DecoderBuffer in_buffer, Mesh out_mesh);
 
+  [Const] Status DecodeFileBufferToMesh(DecoderBuffer in_buffer,
+                                        [Const] DOMString file_type,
+                                        Mesh out_mesh);
+
   long GetAttributeId([Ref, Const] PointCloud pc,
                       draco_GeometryAttribute_Type type);
   long GetAttributeIdByName([Ref, Const] PointCloud pc, [Const] DOMString name);

@@ -1,29 +1,25 @@
 #ifndef DRACO_C3D_ENCODER_WRAPPER_H_
 #define DRACO_C3D_ENCODER_WRAPPER_H_
 
-#include "draco/encoder_buffer.h"
-#include "draco/decoder_buffer.h"
+#include "draco/core/encoder_buffer.h"
+#include "draco/core/decoder_buffer.h"
+#include "draco/core/status.h"
 
 namespace draco {
 
-enum MeshFileType {
-  UNKNOWN = 0,
-  STL = 1,
-  OBJ = 2,
-  PLY = 3
-};
-
 class DracoC3dEncoder {
  public:
-  DracoC3dEncoder(float quantization_scale_nm, int encoding_speed, int decoding_speed);  
-  void EncodeFile(const EncoderBuffer& input_buffer, MeshFileType file_type,
-                  DecoderBuffer* output_buffer);
+  DracoC3dEncoder(int quantization_num_bits, int encoding_speed, int decoding_speed);  
+  const Status* ConvertInputBufferToDracoBuffer(DecoderBuffer* input_buffer,
+                                                const std::string& file_extension,
+                                                EncoderBuffer* output_buffer);
  private:
-  float quantization_scale_nm_;
+  int quantization_num_bits_;
   int encoding_speed_;
   int decoding_speed_;
+  Status last_status_;
 };
 
 } //  namespace draco
 
-#endif DRACO_C3D_ENCODER_WRAPPER_H_
+#endif // DRACO_C3D_ENCODER_WRAPPER_H_

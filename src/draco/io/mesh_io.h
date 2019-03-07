@@ -97,6 +97,12 @@ StatusOr<std::unique_ptr<Mesh>> ReadMeshFromFile(const std::string &file_name,
 StatusOr<std::unique_ptr<Mesh>> ReadMeshFromFile(const std::string &file_name,
                                                  const Options &options);
 
+//  Reads a mesh from a decoder buffer.
+Status ReadMeshFromBuffer(DecoderBuffer* buffer,
+                          const Options &options,
+                          const std::string file_type,
+                          Mesh* mesh);
+
 }  // namespace draco
 
 #endif  // DRACO_MESH_MESH_IO_H_

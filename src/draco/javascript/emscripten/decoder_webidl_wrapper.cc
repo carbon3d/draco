@@ -18,6 +18,8 @@
 #include "draco/mesh/mesh.h"
 #include "draco/mesh/mesh_stripifier.h"
 
+#include "draco/io/mesh_io.h"
+
 using draco::DecoderBuffer;
 using draco::Mesh;
 using draco::Metadata;
@@ -160,6 +162,15 @@ const Status *Decoder::DecodeBufferToPointCloud(DecoderBuffer *in_buffer,
 const Status *Decoder::DecodeBufferToMesh(DecoderBuffer *in_buffer,
                                           Mesh *out_mesh) {
   last_status_ = decoder_.DecodeBufferToGeometry(in_buffer, out_mesh);
+  return &last_status_;
+}
+
+const Status *Decoder::DecodeFileBufferToMesh(DecoderBuffer *in_buffer,
+                                              const char *file_type,
+                                              Mesh *out_mesh) {
+  // Reads a mesh from a decoder buffer.
+  const std::string extension(file_type);
+  last_status_ = draco::ReadMeshFromBuffer(in_buffer, draco::Options(), extension, out_mesh);
   return &last_status_;
 }
 
