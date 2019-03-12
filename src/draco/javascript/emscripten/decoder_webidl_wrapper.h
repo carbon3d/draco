@@ -185,16 +185,6 @@ class Decoder {
   // Decodes a triangular mesh from the provided buffer.
   const draco::Status *DecodeBufferToMesh(draco::DecoderBuffer *in_buffer,
                                           draco::Mesh *out_mesh);
-
-  // Decodes a triangular mesh from the provided buffer.
-  // The buffer can be the data from an obj, stl, ply, or draco encoded file.
-  //  file_type should be the three letter file extension, so one of obj stl ply or
-  //  if not one of those it is assumed to be a draco encoded mesh.
-  const draco::Status *DecodeFileBufferToMesh(draco::DecoderBuffer *in_buffer,
-                                              const char *file_type,
-                                              draco::Mesh *out_mesh);
-
-  
   // Returns an attribute id for the first attribute of a given type.
   long GetAttributeId(const draco::PointCloud &pc,
                       draco_GeometryAttribute_Type type) const;

@@ -15,6 +15,7 @@
 #include "draco/javascript/emscripten/encoder_webidl_wrapper.h"
 
 #include "draco/compression/encode.h"
+#include "draco/io/mesh_io.h"
 #include "draco/mesh/mesh.h"
 
 DracoInt8Array::DracoInt8Array() {}
@@ -160,6 +161,28 @@ bool PointCloudBuilder::SetMetadataForAttribute(PointCloud *pc,
 }
 
 MeshBuilder::MeshBuilder() {}
+
+bool MeshBuilder::DecodeFileBufferToMesh(const char *data, size_t data_size,
+                                         const char *file_type,
+                                         Mesh *out_mesh) {
+  draco::DecoderBuffer in_buffer;
+  in_buffer.Init(data, data_size);
+  // Reads a mesh from a decoder buffer.
+  const std::string extension(file_type);
+  draco::Status status = draco::ReadMeshFromBuffer(&in_buffer, draco::Options(),
+                                                   extension, out_mesh);
+  if (! status.ok()) {
+    std::cerr << "Reading mesh from buffer yielded " << status.error_msg()
+              << std::endl;
+  }
+  return status.ok();
+}
+
+bool MeshBuilder::SetNumFaces(Mesh *mesh, long num_faces) {
+  if (!mesh) return false;
+  mesh->SetNumFaces(num_faces);  
+  return true;
+}
 
 bool MeshBuilder::AddFacesToMesh(Mesh *mesh, long num_faces, const int *faces) {
   if (!mesh)

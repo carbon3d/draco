@@ -74,14 +74,11 @@ StatusOr<std::unique_ptr<Mesh>> ReadMeshFromFile(const std::string &file_name,
   return std::move(mesh);
 }
 
-
 Status ReadMeshFromBuffer(DecoderBuffer* buffer,
                           const Options &options,
                           const std::string file_type,
                           Mesh* mesh) {
   std::string extension = parser::ToLower(file_type);
-
-  std::cout << "Reading file with type " << extension << std::endl;
   // Analyze file extension.
   if (extension == "obj") {
     // Wavefront OBJ file format.
@@ -100,10 +97,7 @@ Status ReadMeshFromBuffer(DecoderBuffer* buffer,
     StlDecoder stl_decoder;
     return stl_decoder.DecodeFromBuffer(buffer, mesh);
   }
-  // Otherwise for not a known file assume the file was encoded with one of the
-  // draco encoding methods.
-  Decoder decoder;
-  return decoder.DecodeBufferToGeometry(buffer, mesh);
+  return Status(Status::ERROR, "Unknown file type");
 }
 
 }  // namespace draco

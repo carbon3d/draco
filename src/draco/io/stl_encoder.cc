@@ -84,7 +84,6 @@ bool StlEncoder::EncodeInternal() {
   if (in_mesh_->num_faces() > std::numeric_limits<uint32_t>::max()) return false;
   buffer()->Encode<uint32_t>(in_mesh_->num_faces());
   Vector3f tmp_value;
-  std::cout << " Has norm " << has_norm << std::endl;
   for (size_t i_face = 0; i_face < in_mesh_->num_faces(); ++i_face) {
     // we assume this is running on a little endian machine
     Mesh::Face face = in_mesh_->face(FaceIndex(i_face));

@@ -1,5 +1,6 @@
 // Interface exposed to emscripten's WebIDL Binder.
 // http://kripken.github.io/emscripten-site/docs/porting/connecting_cpp_and_javascript/WebIDL-Binder.html
+
 enum draco_GeometryAttribute_Type {
   "draco_GeometryAttribute::INVALID",
   "draco_GeometryAttribute::POSITION",
@@ -52,7 +53,7 @@ interface PointCloud {
 interface Mesh : PointCloud {
   void Mesh();
   long num_faces();
-
+  
   // From PointCloud
   long num_attributes();
   long num_points();
@@ -116,6 +117,12 @@ interface PointCloudBuilder {
 interface MeshBuilder : PointCloudBuilder {
   void MeshBuilder();
 
+  boolean DecodeFileBufferToMesh([Const] byte[] data, unsigned long data_size,
+                                 [Const] DOMString file_type,
+                                 Mesh out_mesh);
+  boolean SetNumFaces(Mesh mesh, long num_faces);
+
+  
   boolean AddFacesToMesh(Mesh mesh, long num_faces, [Const] long[] faces);
 
   // Deprecated.

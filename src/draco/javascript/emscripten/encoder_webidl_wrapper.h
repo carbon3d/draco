@@ -22,6 +22,7 @@
 #include "draco/compression/config/encoder_options.h"
 #include "draco/compression/encode.h"
 #include "draco/compression/expert_encode.h"
+#include "draco/core/decoder_buffer.h"
 #include "draco/mesh/mesh.h"
 
 typedef draco::GeometryAttribute draco_GeometryAttribute;
@@ -116,6 +117,17 @@ class MeshBuilder : public PointCloudBuilder {
  public:
   MeshBuilder();
 
+
+  // Decodes a triangular mesh from the provided buffer.
+  // The buffer can be the data from an obj, stl, ply, or draco encoded file.
+  //  file_type should be the three letter file extension, so one of obj stl ply or
+  //  if not one of those it is assumed to be a draco encoded mesh.
+  bool DecodeFileBufferToMesh(const char *data, size_t data_size,
+                              const char *file_type,
+                              draco::Mesh *out_mesh);
+  bool SetNumFaces(draco::Mesh *mesh, long num_faces);
+
+  
   bool AddFacesToMesh(draco::Mesh *mesh, long num_faces, const int *faces);
 
   // Deprecated: Use AddFloatAttribute() instead.

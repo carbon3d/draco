@@ -53,14 +53,14 @@ Status StlDecoder::DecodeFromFile(const std::string &file_name, Mesh *out_mesh) 
 
 Status StlDecoder::DecodeFromBuffer(DecoderBuffer *buffer, Mesh *out_mesh) {
   out_mesh_ = out_mesh;
-  buffer_.Init(buffer->data_head(), buffer->remaining_size());  
+  buffer_.Init(buffer->data_head(), buffer->remaining_size());
   return DecodeInternal();
 }
 
 Status StlDecoder::ParseHeader() {
   char ascii_buffer[5];
-  parser::SkipWhitespace(buffer());
-  if (! buffer()->Decode(ascii_buffer, 5)) {
+  parser::SkipWhitespace(&buffer_);
+  if (! buffer_.Decode(ascii_buffer, 5)) {
     return Status(Status::IO_ERROR, "STL file has invalid header.");
   }
   // If the file begins with "solid" it is likely an ascii stl file
@@ -68,9 +68,9 @@ Status StlDecoder::ParseHeader() {
     std::string tmp_str;
     num_stl_faces_ = 0;
     is_binary_mode_ = false;
-    parser::SkipWhitespace(buffer());
-    int64_t buffer_name_seek_point = buffer()->decoded_size();
-    if (! parser::ParseString(buffer(), &tmp_str)) {
+    parser::SkipWhitespace(&buffer_);
+    int64_t buffer_name_seek_point = buffer_.decoded_size();
+    if (! parser::ParseString(&buffer_, &tmp_str)) {
       return Status(Status::IO_ERROR, "STL file is missing face data.");
     }
     // The ascii stl file format allows for an optional name parameter after
@@ -78,23 +78,23 @@ Status StlDecoder::ParseHeader() {
     // facet as a solid name
     if (tmp_str == "facet") {
       std::string repeat_str;
-      int64_t buffer_post_facet_seek_point = buffer()->decoded_size();      
-      if (! parser::ParseString(buffer(), &repeat_str)) {
+      int64_t buffer_post_facet_seek_point = buffer_.decoded_size();      
+      if (! parser::ParseString(&buffer_, &repeat_str)) {
         return Status(Status::IO_ERROR, "STL file has invalid header.");        
       }
       if (repeat_str == "facet") {
         solid_name_ = tmp_str;
-        buffer()->StartDecodingFrom(buffer_post_facet_seek_point);
+        buffer_.StartDecodingFrom(buffer_post_facet_seek_point);
       } else {
-        buffer()->StartDecodingFrom(buffer_name_seek_point);
+        buffer_.StartDecodingFrom(buffer_name_seek_point);
       }
     } else {
       solid_name_ = tmp_str;
     }
   } else {
-    buffer()->StartDecodingFrom(80);
+    buffer_.StartDecodingFrom(80);
     uint32_t tmp_num_faces = 0;
-    if (!buffer()->Decode<uint32_t>(&tmp_num_faces)) {
+    if (!buffer_.Decode<uint32_t>(&tmp_num_faces)) {
       return Status(Status::IO_ERROR, "Binary STL file has invalid header.");
     }
     num_stl_faces_ = tmp_num_faces;
@@ -105,21 +105,15 @@ Status StlDecoder::ParseHeader() {
 
 Status StlDecoder::ParseBinaryFace(Vector3f* v0, Vector3f* v1, Vector3f* v2,
                                    Vector3f* normal) {
-  const Status facet_error(Status::IO_ERROR, "Incomplete STL facet description.");  
+  const Status facet_error(Status::IO_ERROR, "Incomplete STL facet description.");
+  float vec_buffer[12];
+  if (!buffer_.Decode(vec_buffer, 12 * sizeof(float))) return facet_error;
+  buffer_.Advance(2);
   // While not specified in the standard, floats in the binary stl are typically little endian
-  for (int i = 0; i < 3; ++i) {
-    if (! buffer()->Decode(&((*normal)[i]))) return facet_error;
-  }
-  for (int i = 0; i < 3; ++i) {
-    if (! buffer()->Decode(&((*v0)[i]))) return facet_error;
-  }
-  for (int i = 0; i < 3; ++i) {
-    if (! buffer()->Decode(&((*v1)[i]))) return facet_error;
-  }
-  for (int i = 0; i < 3; ++i) {
-    if (! buffer()->Decode(&((*v2)[i]))) return facet_error;
-  }
-  buffer()->Advance(2);
+  for (int i = 0; i < 3; ++i) (*normal)[i] = vec_buffer[i + 0];
+  for (int i = 0; i < 3; ++i) (*v0)[i] = vec_buffer[i + 3];
+  for (int i = 0; i < 3; ++i) (*v1)[i] = vec_buffer[i + 6];
+  for (int i = 0; i < 3; ++i) (*v2)[i] = vec_buffer[i + 9];
   return Status(Status::OK);
 }
 
@@ -136,7 +130,7 @@ Status StlDecoder::ParseAsciiFace(Vector3f* v0, Vector3f* v1, Vector3f* v2, Vect
   // endfacet
   auto ExpectString = [&] (std::string expected) -> bool {
     std::string tmp_str;
-    if (!parser::ParseString(buffer(), &tmp_str)) return false;
+    if (!parser::ParseString(&buffer_, &tmp_str)) return false;
     if (tmp_str != expected) {
       return false;
     }
@@ -146,7 +140,7 @@ Status StlDecoder::ParseAsciiFace(Vector3f* v0, Vector3f* v1, Vector3f* v2, Vect
     std::string tmp_str;
     for (int i = 0; i < 3; ++i) {
       try {
-        if (! parser::ParseString(buffer(), &tmp_str)) {
+        if (! parser::ParseString(&buffer_, &tmp_str)) {
           return Status(Status::IO_ERROR, "Invalid float in STL facet description.");
         }
         (*vec)[i] = stof(tmp_str);
@@ -160,7 +154,7 @@ Status StlDecoder::ParseAsciiFace(Vector3f* v0, Vector3f* v1, Vector3f* v2, Vect
   const Status facet_error(Status::IO_ERROR, "Invalid STL facet description.");
   Status status(Status::OK);
   std::string tmp_str;
-  if (!parser::ParseString(buffer(), &tmp_str)) return facet_error;
+  if (!parser::ParseString(&buffer_, &tmp_str)) return facet_error;
   if (tmp_str == "endsolid") {
     return status;
   } else if (tmp_str != "facet") return facet_error;
@@ -184,7 +178,7 @@ Status StlDecoder::ParseAsciiFace(Vector3f* v0, Vector3f* v1, Vector3f* v2, Vect
   return status;
 }
 
-Status StlDecoder::DecodeInternal() {
+Status StlDecoder::DecodeInternal() {  
   Vector3f tmp_norm;
   Vector3f tmp_v0;
   Vector3f tmp_v1;
@@ -212,24 +206,13 @@ Status StlDecoder::DecodeInternal() {
   }
   out_mesh_->SetNumFaces(num_stl_faces_);
   out_mesh_->set_num_points(num_stl_faces_ * 3);
-
+  
   GeometryAttribute pos_va;
   pos_va.Init(GeometryAttribute::POSITION, nullptr, 3, DT_FLOAT32, false,
               DataTypeLength(DT_FLOAT32) * 3, 0);
   const int pos_att_id = out_mesh_->AddAttribute(pos_va, true, out_mesh_->num_points());
-  //GeometryAttribute norm_va;
-  //norm_va.Init(GeometryAttribute::NORMAL, nullptr, 3, DT_FLOAT32, false,
-  //             DataTypeLength(DT_FLOAT32) * 3, 0);
-  //const int norm_att_id = out_mesh_->AddAttribute(norm_va, true, out_mesh_->num_points());
-
-  //if (norm_att_id >= 2 || pos_att_id) {
-  //  return Status(Status::IO_ERROR, "The programmers understanding of this library is poor");
-  //}
   PointAttribute *const pos_att = out_mesh_->attribute(pos_att_id);
-  //PointAttribute *const norm_att = out_mesh_->attribute(norm_att_id);
   attribute_element_types_[pos_att_id] = MESH_VERTEX_ATTRIBUTE;
-  //attribute_element_types_[norm_att_id] = MESH_FACE_ATTRIBUTE;
-  
   for (int i = 0; i < num_stl_faces_; ++i) {
     // Read a triangle face
     if (is_binary_mode_) {
@@ -254,17 +237,13 @@ Status StlDecoder::DecodeInternal() {
       pos_att->SetAttributeValue(AttributeValueIndex(start_index + 1), tmp_v0.data());
       pos_att->SetAttributeValue(AttributeValueIndex(start_index + 2), tmp_v2.data());
     }
-    //norm_att->SetAttributeValue(AttributeValueIndex(start_index), tmp_norm.data());
-    //norm_att->SetAttributeValue(AttributeValueIndex(start_index + 1), tmp_norm.data());
-    //norm_att->SetAttributeValue(AttributeValueIndex(start_index + 2), tmp_norm.data());
     out_mesh_->SetFace(face_id,
                        {{PointIndex(start_index), PointIndex(start_index + 1),
                                PointIndex(start_index + 2)}});
   }
 #ifdef DRACO_ATTRIBUTE_VALUES_DEDUPLICATION_SUPPORTED
   // First deduplicate attribute values.
-  if (!out_mesh_->DeduplicateAttributeValues())
-    return status;
+  if (!out_mesh_->DeduplicateAttributeValues())return status;
 #endif
 #ifdef DRACO_ATTRIBUTE_INDICES_DEDUPLICATION_SUPPORTED
   // Also deduplicate vertex indices.
@@ -277,6 +256,7 @@ Status StlDecoder::DecodeInternal() {
           static_cast<MeshAttributeElementType>(attribute_element_types_[i]));
     }
   }
- return status;
- }
+  return status;
+}
+
 }  // namespace draco
