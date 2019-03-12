@@ -116,8 +116,6 @@ class PointCloudBuilder {
 class MeshBuilder : public PointCloudBuilder {
  public:
   MeshBuilder();
-
-
   // Decodes a triangular mesh from the provided buffer.
   // The buffer can be the data from an obj, stl, ply, or draco encoded file.
   //  file_type should be the three letter file extension, so one of obj stl ply or
@@ -125,8 +123,8 @@ class MeshBuilder : public PointCloudBuilder {
   bool DecodeFileBufferToMesh(const char *data, size_t data_size,
                               const char *file_type,
                               draco::Mesh *out_mesh);
-  bool SetNumFaces(draco::Mesh *mesh, long num_faces);
 
+  bool SetNumFaces(draco::Mesh *mesh, long num_faces);
   
   bool AddFacesToMesh(draco::Mesh *mesh, long num_faces, const int *faces);
 
@@ -194,5 +192,27 @@ class ExpertEncoder {
 
   draco::PointCloud *pc_;
 };
+
+
+class MeshQuantizationCarbon {
+ public:
+  MeshQuantizationCarbon() :
+      quantization_bits_(-1),
+      range_(0),
+      min_values_(3, 0)
+  {}
+  bool IsSet() {return quantization_bits_ == -1;}
+  int quantization_bits() const {return quantization_bits_;}
+  float range() const {return range_;}
+  float min_values_x() {return min_values_[0];}
+  float min_values_y() {return min_values_[1];}
+  float min_values_z() {return min_values_[2];}
+  bool FillFromMesh(draco::Mesh *mesh, float grid_delta);
+ private:
+  int quantization_bits_;
+  float range_;
+  std::vector<float> min_values_;
+};
+
 
 #endif  // DRACO_JAVASCRIPT_EMSCRITPEN_ENCODER_WEBIDL_WRAPPER_H_

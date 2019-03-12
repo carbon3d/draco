@@ -122,7 +122,6 @@ interface MeshBuilder : PointCloudBuilder {
                                  Mesh out_mesh);
   boolean SetNumFaces(Mesh mesh, long num_faces);
 
-  
   boolean AddFacesToMesh(Mesh mesh, long num_faces, [Const] long[] faces);
 
   // Deprecated.
@@ -209,3 +208,16 @@ interface ExpertEncoder {
   long GetNumberOfEncodedPoints();
   long GetNumberOfEncodedFaces();
 };
+
+interface MeshQuantizationCarbon {
+  void MeshQuantizationCarbon();
+  boolean FillFromMesh(Mesh m, float grid_delta);
+
+  boolean IsSet();
+  long quantization_bits();
+  float range();
+  float min_values_x();
+  float min_values_y();
+  float min_values_z();
+};
+
