@@ -663,6 +663,7 @@ if(ENABLE_EMBIND AND EMSCRIPTEN)
     require_compiler_flag("--llvm-lto 1" YES)  # potentially unsafe according to emscripten specs
   endif ()
   add_compiler_flag_if_supported("-O3")
+
   # TODO(nharrington) update the source list to be more restrictive to .wasm file size.
   set(draco_embind_encoder_src
       ${draco_attributes_sources}
@@ -685,7 +686,11 @@ if(ENABLE_EMBIND AND EMSCRIPTEN)
       ${draco_version_sources})
     add_executable(DracoEncoderEmbind "${draco_src_root}/javascript/emscripten/draco_embind_encoder.cc"
       ${draco_embind_encoder_src})
-#
+    draco_enable_feature(FEATURE DRACO_ATTRIBUTE_INDICES_DEDUPLICATION_SUPPORTED
+      TARGETS DracoEncoderEmbind)
+    draco_enable_feature(FEATURE DRACO_ATTRIBUTE_VALUES_DEDUPLICATION_SUPPORTED
+       TARGETS DracoEncoderEmbind)
+    #
 # Draco targets.
 #
 elseif (EMSCRIPTEN AND ENABLE_JS_GLUE)
