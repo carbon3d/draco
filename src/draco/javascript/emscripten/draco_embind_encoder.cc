@@ -25,6 +25,7 @@
 #include "draco/point_cloud/point_cloud.h"
 
 typedef draco::GeometryAttribute::Type draco_GeometryAttribute_Type;
+typedef draco::MeshEncoderMethod draco_MeshEncoderMethod;
 
 class MeshQuantizationCarbon {
  public:
@@ -33,7 +34,7 @@ class MeshQuantizationCarbon {
       range_(0),
       min_values_(3, 0)
   {}
-  bool IsSet() {return quantization_bits_ == -1;}
+  bool IsSet() {return quantization_bits_ != -1;}
   int quantization_bits() const {return quantization_bits_;}
   float range() const {return range_;}
   float min_values_x() {return min_values_[0];}
@@ -92,6 +93,7 @@ class DecoderBufferOwner {
   DecoderBufferOwner(size_t buffer_size) : buffer_(buffer_size, 0) {
     decoder_buffer_.Init(&(buffer_[0]), buffer_size);
   }
+  
   draco::DecoderBuffer* GetDecoderBuffer() {return &decoder_buffer_;}
   emscripten::val GetBufferView() {
     return emscripten::val(emscripten::typed_memory_view(buffer_.size(), &(buffer_[0])));
@@ -143,12 +145,12 @@ class Encoder {
   void SetAttributeExplicitQuantization(draco_GeometryAttribute_Type type,
                                         long quantization_bits,
                                         long num_components,
-                                        const float *origin, float range);
+                                        float origin_x, float origin_y, float origin_z,
+                                        float range);
   void SetSpeedOptions(long encoding_speed, long decoding_speed);
   void SetTrackEncodedProperties(bool flag);
 
   int EncodeMeshToDracoBuffer(draco::Mesh *mesh, DracoInt8Array *buffer);
-
   int EncodePointCloudToDracoBuffer(draco::PointCloud *pc,
                                     bool deduplicate_values,
                                     DracoInt8Array *buffer);
@@ -172,7 +174,9 @@ void Encoder::SetAttributeQuantization(draco_GeometryAttribute_Type type,
 
 void Encoder::SetAttributeExplicitQuantization(
     draco_GeometryAttribute_Type type, long quantization_bits,
-    long num_components, const float *origin, float range) {
+    long num_components,  float origin_x, float origin_y, float origin_z,
+    float range) {
+  float origin[3] = {origin_x, origin_y, origin_z};
   encoder_.SetAttributeExplicitQuantization(type, quantization_bits,
                                             num_components, origin, range);
 }
@@ -231,6 +235,7 @@ int Encoder::GetNumberOfEncodedFaces() { return encoder_.num_encoded_faces(); }
 EMSCRIPTEN_BINDINGS(dracoEncoder) {
   emscripten::class_<DracoInt8Array>("DracoInt8Array")
       .constructor<>()
+      .function("size", &DracoInt8Array::size)
       .function("GetView", &DracoInt8Array::GetView)
       ;
 
@@ -243,6 +248,12 @@ EMSCRIPTEN_BINDINGS(dracoEncoder) {
       .value("GENERIC", draco::GeometryAttribute::GENERIC)
       ;
 
+  emscripten::enum_<draco_MeshEncoderMethod>("draco_MeshEncoderMethod")
+      .value("MESH_SEQUENTIAL_ENCODING", draco::MESH_SEQUENTIAL_ENCODING)
+      .value("MESH_EDGEBREAKER_ENCODING", draco::MESH_EDGEBREAKER_ENCODING)
+      ;
+
+  
   emscripten::class_<draco::PointCloud>("PointCloud")
       .constructor<>()
       .function("num_attributes", &draco::PointCloud::num_attributes)

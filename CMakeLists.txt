@@ -654,7 +654,6 @@ if(ENABLE_EMBIND AND EMSCRIPTEN)
   require_compiler_flag("--bind" YES)
   require_compiler_flag("-s FETCH" YES)
 
-  require_compiler_flag("-s ALLOW_MEMORY_GROWTH=1" YES)
   require_compiler_flag("-s NO_FILESYSTEM=1" YES)
   require_compiler_flag("-s EXPORTED_RUNTIME_METHODS=[]" YES)
   require_compiler_flag("-s PRECISE_F32=1" YES)
@@ -663,7 +662,9 @@ if(ENABLE_EMBIND AND EMSCRIPTEN)
     require_compiler_flag("--llvm-lto 1" YES)  # potentially unsafe according to emscripten specs
   endif ()
   add_compiler_flag_if_supported("-O3")
+  require_compiler_flag("-s ALLOW_MEMORY_GROWTH=1" YES)
 
+  
   # TODO(nharrington) update the source list to be more restrictive to .wasm file size.
   set(draco_embind_encoder_src
       ${draco_attributes_sources}
