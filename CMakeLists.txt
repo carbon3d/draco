@@ -56,6 +56,8 @@ option(BUILD_FOR_GLTF "" OFF)
 option(BUILD_MAYA_PLUGIN "Build plugin library for Maya." OFF)
 option(BUILD_USD_PLUGIN "Build plugin library for USD." OFF)
 
+option(ENABLE_EMBIND "" OFF)
+
 if (WIN32 AND BUILD_SHARED_LIBS)
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
   include(GenerateExportHeader)
@@ -645,10 +647,48 @@ set(draco_maya_plug_sources
 
 include_directories("${draco_root}/src" "${draco_build_dir}")
 
+# Carbon's embind bindings.
+if(ENABLE_EMBIND AND EMSCRIPTEN)
+  message(STATUS "Inside Carbon build code")
+  #compiler flags
+  require_compiler_flag("--bind" YES)
+  require_compiler_flag("-s FETCH" YES)
+
+  require_compiler_flag("-s ALLOW_MEMORY_GROWTH=1" YES)
+  require_compiler_flag("-s NO_FILESYSTEM=1" YES)
+  require_compiler_flag("-s EXPORTED_RUNTIME_METHODS=[]" YES)
+  require_compiler_flag("-s PRECISE_F32=1" YES)
+  require_compiler_flag("-s WASM=1" YES)
+  if (ENABLE_EXTRA_SPEED)
+    require_compiler_flag("--llvm-lto 1" YES)  # potentially unsafe according to emscripten specs
+  endif ()
+  add_compiler_flag_if_supported("-O3")
+  # TODO(nharrington) update the source list to be more restrictive to .wasm file size.
+  set(draco_embind_encoder_src
+      ${draco_attributes_sources}
+      ${draco_compression_attributes_enc_sources}
+      ${draco_compression_attributes_pred_schemes_enc_sources}
+      ${draco_compression_bit_coders_sources}
+      ${draco_compression_encode_sources}
+      ${draco_compression_entropy_sources}
+      ${draco_compression_mesh_traverser_sources}
+      ${draco_compression_mesh_enc_sources}
+      ${draco_compression_point_cloud_enc_sources}
+      ${draco_core_sources}
+      ${draco_enc_config_sources}
+      ${draco_io_sources}
+      ${draco_mesh_sources}
+      ${draco_metadata_enc_sources}
+      ${draco_metadata_sources}
+      ${draco_point_cloud_sources}
+      ${draco_points_enc_sources}
+      ${draco_version_sources})
+    add_executable(DracoEncoderEmbind "${draco_src_root}/javascript/emscripten/draco_embind_encoder.cc"
+      ${draco_embind_encoder_src})
 #
 # Draco targets.
 #
-if (EMSCRIPTEN AND ENABLE_JS_GLUE)
+elseif (EMSCRIPTEN AND ENABLE_JS_GLUE)
   # Draco js decoder.
   require_compiler_flag("-s ALLOW_MEMORY_GROWTH=1" YES)
   require_compiler_flag("-Wno-almost-asm" YES)
@@ -874,7 +914,7 @@ if (EMSCRIPTEN AND ENABLE_JS_GLUE)
     em_link_post_js(draco_animation_encoder
                     "${draco_build_dir}/glue_animation_encoder.js"
                     "${draco_src_root}/javascript/emscripten/finalize.js")
-  endif()
+  endif()  #ends the WebIDL Bindings
 else ()
   # Standard Draco libs, encoder and decoder.
   # Object collections that mirror the Draco directory structure.
