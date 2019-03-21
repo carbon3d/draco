@@ -652,7 +652,6 @@ if(ENABLE_EMBIND AND EMSCRIPTEN)
   message(STATUS "Inside Carbon build code")
   #compiler flags
   require_compiler_flag("--bind" YES)
-  require_compiler_flag("-s FETCH" YES)
 
   require_compiler_flag("-s NO_FILESYSTEM=1" YES)
   require_compiler_flag("-s EXPORTED_RUNTIME_METHODS=[]" YES)
@@ -660,10 +659,14 @@ if(ENABLE_EMBIND AND EMSCRIPTEN)
   require_compiler_flag("-s WASM=1" YES)
   if (ENABLE_EXTRA_SPEED)
     require_compiler_flag("--llvm-lto 1" YES)  # potentially unsafe according to emscripten specs
-  endif ()
-  add_compiler_flag_if_supported("-O3")
+  endif ()  
   require_compiler_flag("-s ALLOW_MEMORY_GROWTH=1" YES)
-
+  require_compiler_flag("-s MODULARIZE=1" YES)
+  require_compiler_flag("-s EXPORT_NAME='DracoEncoderEmbind'" YES)
+  add_compiler_flag_if_supported("-O3")
+  
+  # Uncomment to verify future proofing
+  #require_compiler_flag("-s STRICT=1" YES)
   
   # TODO(nharrington) update the source list to be more restrictive to .wasm file size.
   set(draco_embind_encoder_src

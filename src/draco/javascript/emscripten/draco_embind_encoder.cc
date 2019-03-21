@@ -232,7 +232,7 @@ int Encoder::GetNumberOfEncodedPoints() {
 
 int Encoder::GetNumberOfEncodedFaces() { return encoder_.num_encoded_faces(); }
 
-EMSCRIPTEN_BINDINGS(dracoEncoder) {
+EMSCRIPTEN_BINDINGS(DracoEncoder) {
   emscripten::class_<DracoInt8Array>("DracoInt8Array")
       .constructor<>()
       .function("size", &DracoInt8Array::size)
