@@ -55,6 +55,7 @@ option(BUILD_ANIMATION_ENCODING "" OFF)
 option(BUILD_FOR_GLTF "" OFF)
 option(BUILD_MAYA_PLUGIN "Build plugin library for Maya." OFF)
 option(BUILD_USD_PLUGIN "Build plugin library for USD." OFF)
+option(ENABLE_EMBIND "Build the embind based bindings." OFF)
 
 if (WIN32 AND BUILD_SHARED_LIBS)
   set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS TRUE)
@@ -648,7 +649,9 @@ include_directories("${draco_root}/src" "${draco_build_dir}")
 #
 # Draco targets.
 #
-if (EMSCRIPTEN AND ENABLE_JS_GLUE)
+if (ENABLE_EMBIND AND EMSCRIPTEN)
+include(MakeListsEmbind.include.txt)
+elseif (EMSCRIPTEN AND ENABLE_JS_GLUE)
   # Draco js decoder.
   require_compiler_flag("-s ALLOW_MEMORY_GROWTH=1" YES)
   require_compiler_flag("-Wno-almost-asm" YES)
