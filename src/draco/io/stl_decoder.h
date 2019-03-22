@@ -28,7 +28,7 @@ class StlDecoder {
  public:
   StlDecoder();
   // Decodes an st file stored in the input file.
-  // Returns nullptr if the decoding failed.  
+  // Returns nullptr if the decoding failed.
   Status DecodeFromFile(const std::string &file_name, Mesh *out_mesh);
   Status DecodeFromBuffer(DecoderBuffer *buffer, Mesh *out_mesh);
  protected:
@@ -46,7 +46,7 @@ class StlDecoder {
   std::string solid_name_;
   std::vector<int8_t> attribute_element_types_;
   // Data structure that stores the decoded data. |out_mesh_| must be set
-  Mesh *out_mesh_;  
+  Mesh *out_mesh_;
 };
 
 }  // namespace draco

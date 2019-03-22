@@ -78,9 +78,9 @@ Status StlDecoder::ParseHeader() {
     // facet as a solid name
     if (tmp_str == "facet") {
       std::string repeat_str;
-      int64_t buffer_post_facet_seek_point = buffer_.decoded_size();      
+      int64_t buffer_post_facet_seek_point = buffer_.decoded_size();
       if (! parser::ParseString(&buffer_, &repeat_str)) {
-        return Status(Status::IO_ERROR, "STL file has invalid header.");        
+        return Status(Status::IO_ERROR, "STL file has invalid header.");
       }
       if (repeat_str == "facet") {
         solid_name_ = tmp_str;
@@ -169,16 +169,16 @@ Status StlDecoder::ParseAsciiFace(Vector3f* v0, Vector3f* v1, Vector3f* v2, Vect
   if (! ExpectString("vertex")) return facet_error;
   status = FillThreeVec(v1);
   if (! status.ok()) return status;
-  if (! ExpectString("vertex")) return facet_error;  
+  if (! ExpectString("vertex")) return facet_error;
   status = FillThreeVec(v2);
   if (! status.ok()) return status;
   if (! ExpectString("endloop")) return facet_error;
   if (! ExpectString("endfacet")) return facet_error;
-  *is_valid_triangle = true;  
+  *is_valid_triangle = true;
   return status;
 }
 
-Status StlDecoder::DecodeInternal() {  
+Status StlDecoder::DecodeInternal() {
   Vector3f tmp_norm;
   Vector3f tmp_v0;
   Vector3f tmp_v1;
@@ -206,7 +206,7 @@ Status StlDecoder::DecodeInternal() {
   }
   out_mesh_->SetNumFaces(num_stl_faces_);
   out_mesh_->set_num_points(num_stl_faces_ * 3);
-  
+
   GeometryAttribute pos_va;
   pos_va.Init(GeometryAttribute::POSITION, nullptr, 3, DT_FLOAT32, false,
               DataTypeLength(DT_FLOAT32) * 3, 0);

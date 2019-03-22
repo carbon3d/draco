@@ -90,7 +90,7 @@ bool StlEncoder::EncodeInternal() {
     Mesh::Face face = in_mesh_->face(FaceIndex(i_face));
     Vector3f vs[3];
     for (int i_vert = 0; i_vert < 3; ++i_vert) {
-      pos_att->GetMappedValue(face[i_vert], &vs[i_vert]);      
+      pos_att->GetMappedValue(face[i_vert], &vs[i_vert]);
     }
     if (has_norm) {
       norm_att->GetMappedValue(face[0], &tmp_value);
@@ -98,10 +98,10 @@ bool StlEncoder::EncodeInternal() {
     } else {
       Vector3f norm = CrossProduct(vs[2] - vs[1], vs[0] - vs[1]);
       norm.Normalize();
-      if (! EncodeFloatList(&norm[0], 3)) return false;       
-    }    
+      if (! EncodeFloatList(&norm[0], 3)) return false;
+    }
     for (int i_vert = 0; i_vert < 3; ++i_vert) {
-      if (! EncodeFloatList(&(vs[i_vert][0]), 3)) return false; 
+      if (! EncodeFloatList(&(vs[i_vert][0]), 3)) return false;
     }
     uint16_t blank = 0;
     if (! buffer()->Encode(&blank, 2)) return false;

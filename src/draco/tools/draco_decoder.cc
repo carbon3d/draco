@@ -177,7 +177,6 @@ int main(int argc, char **argv) {
     } else {
       printf(".stl file format only valid for storing mesh data.");
     }
-    
   } else {
     printf(
         "Invalid extension of the output file. Use either .ply, .obj, or "

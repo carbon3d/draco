@@ -500,7 +500,7 @@ set(draco_io_sources
     "${draco_src_root}/io/stl_decoder.cc"
     "${draco_src_root}/io/stl_decoder.h"
     "${draco_src_root}/io/stl_encoder.cc"
-    "${draco_src_root}/io/stl_encoder.h"    
+    "${draco_src_root}/io/stl_encoder.h"
     "${draco_src_root}/io/point_cloud_io.cc"
     "${draco_src_root}/io/point_cloud_io.h")
 
