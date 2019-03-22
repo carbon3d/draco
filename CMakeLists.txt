@@ -650,7 +650,7 @@ include_directories("${draco_root}/src" "${draco_build_dir}")
 # Draco targets.
 #
 if (ENABLE_EMBIND AND EMSCRIPTEN)
-include(MakeListsEmbind.include.txt)
+include(CMakeListsEmbind.include.txt)
 elseif (EMSCRIPTEN AND ENABLE_JS_GLUE)
   # Draco js decoder.
   require_compiler_flag("-s ALLOW_MEMORY_GROWTH=1" YES)

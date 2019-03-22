@@ -139,8 +139,8 @@ bool DecodeFileBufferToMesh(draco::DecoderBuffer* buffer,
                             draco::Mesh *out_mesh) {
   // Reads a mesh from a decoder buffer.
   const std::string extension(file_type);
-  draco::Status status = draco::ReadMeshFromBuffer(buffer, draco::Options(),
-                                                   extension, out_mesh);
+  draco::Status status = ReadMeshFromBuffer(buffer, draco::Options(),
+                                            extension, out_mesh);
   if (! status.ok()) {
     std::cerr << "Reading mesh from buffer yielded " << status.error_msg()
               << std::endl;
