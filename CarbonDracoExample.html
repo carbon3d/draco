@@ -1,0 +1,109 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <script type="text/javascript" src="./build/DracoEncoderEmbind.js"></script>
+
+    <script>
+      "use strict";
+      async function LoadFileToBuffer(file_object, destination_array, read_block_size=8192*8192) {
+	  let promise = new Promise(function(resolve, reject) {
+	      let file_reader = new FileReader();
+	      let array_offset = 0;
+	      file_reader.onload = () => {
+		  //console.log("setting array");
+		  destination_array.set(new Int8Array(file_reader.result), array_offset);
+		  array_offset += read_block_size;
+		  if (array_offset > file_object.size) {
+		      resolve(true);
+		  } else {
+		      file_reader.readAsArrayBuffer(file_object.slice(array_offset,
+								      array_offset + read_block_size));
+		  }
+	      };
+	      file_reader.onerror = () => {
+		  file_reader.abort();
+		  reject(Error("File read error"));
+	      }
+	      file_reader.readAsArrayBuffer(file_object.slice(array_offset,
+							      array_offset + read_block_size));
+	  });
+	  return promise;
+      }
+
+      // The Module object provides a set of callbacks to the embind based webassembly
+      // initialization.  We are only using the onRuntimeInitialized callback which
+      // is called after the module is initialized.
+      var Module = {
+	  onRuntimeInitialized: function() {
+	      console.log("Runtime initialization");	      
+	      document.getElementById('encodeOne').disabled = false;
+	  }
+      };
+      console.log("Creating our encoder module");
+      // This creates our webassembly module.  Our C++ code exists as members and
+      // methods of this object
+      var OurEncoderModule = DracoEncoderEmbind(Module);
+
+      function onEncodeClick() {
+	  let decode_t0 = performance.now();
+	  let decoder_buffer_owner = new OurEncoderModule.DecoderBufferOwner(
+	      document.getElementById("fileItem").files[0].size);
+	  let my_buffer = decoder_buffer_owner.GetBufferView();
+	  let mesh = new OurEncoderModule.Mesh();
+	  let encoder = new OurEncoderModule.Encoder();
+	  let mesh_quantization = new OurEncoderModule.MeshQuantizationCarbon();
+	  let output_buffer = new OurEncoderModule.DracoInt8Array();
+	  console.log("Starting load");
+	  LoadFileToBuffer(document.getElementById("fileItem").files[0], my_buffer).then(
+	      function(result) {
+		  console.log("Decoding to buffer");		  
+		  OurEncoderModule.DecodeFileBufferToMesh(
+		      decoder_buffer_owner.GetDecoderBuffer(), "stl", mesh);
+		  console.log("Done decoding to buffer");
+	      }
+	  ).then(
+	      function(result) {
+		  console.log("Done loading ");
+		  console.log(mesh.num_faces());
+		  console.log("Filling mesh data");
+		  mesh_quantization.FillFromMesh(mesh, 1e-4);
+		  console.log("Done Filling mesh data");
+		  console.log("Quantizing with parameters: " + mesh_quantization.quantization_bits() +
+			      " " + mesh_quantization.range());
+		  encoder.SetAttributeExplicitQuantization(
+		      OurEncoderModule.draco_GeometryAttribute_Type.POSITION,
+		      mesh_quantization.quantization_bits(),
+		      3,
+		      mesh_quantization.min_values_x(),
+		      mesh_quantization.min_values_y(),
+		      mesh_quantization.min_values_z(),
+		      mesh_quantization.range());
+		  encoder.SetSpeedOptions(10, 0);
+		  encoder.SetEncodingMethod(
+		      OurEncoderModule.draco_MeshEncoderMethod.MESH_EDGEBREAKER_ENCODING.value);
+		  console.log("Got to encoding");
+		  encoder.EncodeMeshToDracoBuffer(mesh, output_buffer);
+		  console.log("Encoded to " + output_buffer.size());
+	      }
+	  ).then(
+	      function(result) {
+		  decoder_buffer_owner.delete();
+		  mesh.delete();
+		  encoder.delete();
+		  mesh_quantization.delete();
+		  output_buffer.delete();
+		  
+		  // Module.destroy(decoder_buffer_owner);
+		  // Module.destroy(mesh);
+		  // Module.destroy(output_buffer);
+	      }
+	  );
+      }
+    </script>
+  </head>
+  <body>
+    <input id="fileItem" type="file"/>
+    <input type="button" value="Encode" id="encodeOne" onClick="onEncodeClick();" disabled>
+  </body>
+</html>
