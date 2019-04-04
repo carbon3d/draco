@@ -283,7 +283,6 @@ EMSCRIPTEN_BINDINGS(DracoEncoder) {
       .value("MESH_SEQUENTIAL_ENCODING", draco::MESH_SEQUENTIAL_ENCODING)
       .value("MESH_EDGEBREAKER_ENCODING", draco::MESH_EDGEBREAKER_ENCODING)
       ;
-
   
   emscripten::class_<draco::PointCloud>("PointCloud")
       .constructor<>()

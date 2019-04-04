@@ -67,7 +67,8 @@
 		  console.log("Done loading ");
 		  console.log(mesh.num_faces());
 		  console.log("Filling mesh data");
-		  mesh_quantization.FillFromMesh(mesh, 1e-4);
+		  // We select a spacing of ~122nm or more specifically 2^-13.
+		  mesh_quantization.FillFromMesh(mesh, 0.0001220703125);
 		  console.log("Done Filling mesh data");
 		  console.log("Quantizing with parameters: " + mesh_quantization.quantization_bits() +
 			      " " + mesh_quantization.range());
