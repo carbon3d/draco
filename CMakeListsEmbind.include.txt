@@ -16,18 +16,25 @@ add_compiler_flag_if_supported("-O3")
 #require_compiler_flag("-s STRICT=1" YES)
 set(draco_embind_encoder_src
   ${draco_attributes_sources}
+  ${draco_compression_attributes_dec_sources}
   ${draco_compression_attributes_enc_sources}
+  ${draco_compression_attributes_pred_schemes_dec_sources}
   ${draco_compression_attributes_pred_schemes_enc_sources}
   ${draco_compression_bit_coders_sources}
+  ${draco_compression_decode_sources}
   ${draco_compression_encode_sources}
   ${draco_compression_entropy_sources}
   ${draco_compression_mesh_traverser_sources}
+  ${draco_compression_mesh_dec_sources}
+  ${draco_compression_point_cloud_dec_sources}  
   ${draco_compression_mesh_enc_sources}
   ${draco_compression_point_cloud_enc_sources}
   ${draco_core_sources}
+  ${draco_dec_config_sources}
   ${draco_enc_config_sources}
   ${draco_io_sources}
   ${draco_mesh_sources}
+  ${draco_metadata_dec_sources}
   ${draco_metadata_enc_sources}
   ${draco_metadata_sources}
   ${draco_point_cloud_sources}

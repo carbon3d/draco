@@ -45,20 +45,20 @@ class MeshQuantizationCarbon {
   float min_values_x() {return min_values_[0];}
   float min_values_y() {return min_values_[1];}
   float min_values_z() {return min_values_[2];}
-  bool FillFromMesh(draco::Mesh *mesh, float grid_delta);
+  std::string FillFromMesh(draco::Mesh *mesh, float grid_delta);
  private:
   int quantization_bits_;
   float range_;
   std::vector<float> min_values_;
 };
 
-bool MeshQuantizationCarbon::FillFromMesh(draco::Mesh *mesh, float grid_delta) {
+std::string MeshQuantizationCarbon::FillFromMesh(draco::Mesh *mesh, float grid_delta) {
   constexpr int kMaxNumQuantizationBits = 30;
-  if (grid_delta < 0) return false;  
+  if (grid_delta < 0) return "Negative Grid Delta";  
   const draco::PointAttribute *const pos_att =
       mesh->GetNamedAttribute(draco::GeometryAttribute::POSITION);
   const int num_components = pos_att->num_components();
-  if (num_components != 3) return false;
+  if (num_components != 3) return "The position attribute does not have 3 values.";
   range_ = 0.f;
   min_values_ = std::vector<float>(num_components, 0.f);
   const std::unique_ptr<float[]> max_values(new float[num_components]);
@@ -90,7 +90,7 @@ bool MeshQuantizationCarbon::FillFromMesh(draco::Mesh *mesh, float grid_delta) {
   } else {
     range_ = grid_delta * powf(2, quantization_bits_);
   }
-  return true;
+  return "";
 }
 
 class DecoderBufferOwner {
@@ -134,18 +134,20 @@ draco::Status ReadMeshFromBuffer(draco::DecoderBuffer* buffer,
   return draco::Status(draco::Status::ERROR, "Unknown file type");
 }
 
-bool DecodeFileBufferToMesh(draco::DecoderBuffer* buffer,
-                            std::string file_type,
-                            draco::Mesh *out_mesh) {
-  // Reads a mesh from a decoder buffer.
-  const std::string extension(file_type);
-  draco::Status status = ReadMeshFromBuffer(buffer, draco::Options(),
-                                            extension, out_mesh);
-  if (! status.ok()) {
-    std::cerr << "Reading mesh from buffer yielded " << status.error_msg()
-              << std::endl;
+std::string DecodeFileBufferToMesh(draco::DecoderBuffer* buffer,
+                                   std::string file_type,
+                                   draco::Mesh *out_mesh) {
+  draco::Status status;
+  if (file_type == "drc") {
+    draco::Decoder decoder;
+    status = decoder.DecodeBufferToGeometry(buffer, out_mesh);
+  } else {
+    // Reads a mesh from a decoder buffer.
+    status = ReadMeshFromBuffer(buffer, draco::Options(),
+                                file_type, out_mesh);
   }
-  return status.ok();
+  if (! status.ok()) return status.error_msg();
+  else return "";
 }
 
 class DracoInt8Array {
