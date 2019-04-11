@@ -228,7 +228,7 @@ Status StlDecoder::DecodeInternal() {
     FaceIndex face_id(i);
     const int start_index = 3 * face_id.value();
     //  we use the CCW winding order of the vertices to encode the normal information
-    if (tmp_norm.Dot( CrossProduct( tmp_v2 - tmp_v1, tmp_v0 - tmp_v1)) > 0) {
+    if (tmp_norm.Dot(CrossProduct( tmp_v2 - tmp_v1, tmp_v0 - tmp_v1)) > 0) {
       pos_att->SetAttributeValue(AttributeValueIndex(start_index), tmp_v0.data());
       pos_att->SetAttributeValue(AttributeValueIndex(start_index + 1), tmp_v1.data());
       pos_att->SetAttributeValue(AttributeValueIndex(start_index + 2), tmp_v2.data());
