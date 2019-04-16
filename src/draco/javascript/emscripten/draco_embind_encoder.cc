@@ -275,7 +275,7 @@ struct TriangleSpec {
 // TODO(nharrington) modify this so you don't need to get the attribute for each triangle
 std::string GetTriangles(draco::Mesh* mesh, TriangleSpec* ts) {
   const int pos_att_id = mesh->GetNamedAttributeId(draco::GeometryAttribute::POSITION);
-  if (pos_att_id < 0) return false;
+  if (pos_att_id < 0) return "Error getting the position attribute of mesh";
   ts->data.resize(mesh->num_faces() * 9);
   const auto *const pos_att = mesh->attribute(pos_att_id);
   for (int index = 0; index < mesh->num_faces(); ++index) {
