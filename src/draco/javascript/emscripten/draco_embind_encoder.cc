@@ -265,7 +265,39 @@ int Encoder::GetNumberOfEncodedPoints() {
 
 int Encoder::GetNumberOfEncodedFaces() { return encoder_.num_encoded_faces(); }
 
+struct TriangleSpec {
+  std::vector<float> data;
+  emscripten::val GetView() {
+    return emscripten::val(emscripten::typed_memory_view(data.size(), &(data[0])));
+  }
+};
+
+// TODO(nharrington) modify this so you don't need to get the attribute for each triangle
+std::string GetTriangles(draco::Mesh* mesh, TriangleSpec* ts) {
+  const int pos_att_id = mesh->GetNamedAttributeId(draco::GeometryAttribute::POSITION);
+  if (pos_att_id < 0) return false;
+  ts->data.resize(mesh->num_faces() * 9);
+  const auto *const pos_att = mesh->attribute(pos_att_id);
+  for (int index = 0; index < mesh->num_faces(); ++index) {
+    draco::Mesh::Face face = mesh->face(draco::FaceIndex(index));
+    draco::Vector3f vs;
+    for (int i = 0; i < 3; ++i) {
+      pos_att->GetMappedValue(face[i], &vs);
+      for (int j = 0; j < 3; ++j) ts->data[9 * index + 3 * i + j] = vs[j];
+    }
+  }
+  return "";
+}
+
 EMSCRIPTEN_BINDINGS(DracoEncoder) {
+  emscripten::class_<TriangleSpec>("TriangleSpec")
+      .constructor<>()
+      .function("GetView", &TriangleSpec::GetView)
+      ;
+  
+  emscripten::function("GetTriangles", GetTriangles,
+                       emscripten::allow_raw_pointers());
+  
   emscripten::class_<DracoInt8Array>("DracoInt8Array")
       .constructor<>()
       .function("size", &DracoInt8Array::size)
