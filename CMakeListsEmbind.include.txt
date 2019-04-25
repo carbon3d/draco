@@ -10,7 +10,11 @@ endif ()
 require_compiler_flag("-s ALLOW_MEMORY_GROWTH=1" YES)
 require_compiler_flag("-s MODULARIZE=1" YES)
 require_compiler_flag("-s EXPORT_NAME='DracoEncoderEmbind'" YES)
-add_compiler_flag_if_supported("-O3")
+#require_compiler_flag("-s ENVIRONMENT=\"web\"" YES)
+require_compiler_flag("-s ENVIRONMENT=\"worker\"" YES)
+require_compiler_flag("-s EXPORT_ES6=1" YES)
+require_compiler_flag("--memory-init-file 0" YES)
+
  
 # Uncomment to verify future proofing
 #require_compiler_flag("-s STRICT=1" YES)
