@@ -15,6 +15,7 @@
 #include "draco/io/stl_decoder.h"
 
 #include <cstring>
+#include <cmath>
 #include <fstream>
 #include <limits>
 #include <string>
@@ -224,23 +225,42 @@ Status StlDecoder::DecodeInternal() {
       tmp_v1 = tmp_three_vec_storage[4 * i + 2];
       tmp_v2 = tmp_three_vec_storage[4 * i + 3];
     }
+    // We intentionally do not check for NaN's in the normal.
+    // We have encoded the normal information in the winding order of the vertices of the triangle
+    // so the normal is only useful when setting that winding order.
+    bool finite_0 = std::isfinite(tmp_v0[0]) && std::isfinite(tmp_v0[1]) && std::isfinite(tmp_v0[2]);
+    bool finite_1 = std::isfinite(tmp_v1[0]) && std::isfinite(tmp_v1[1]) && std::isfinite(tmp_v1[2]);
+    bool finite_2 = std::isfinite(tmp_v2[0]) && std::isfinite(tmp_v2[1]) && std::isfinite(tmp_v2[2]);
+    if (! (finite_0 && finite_1 && finite_2)) {
+      if (! (finite_0 || finite_1 || finite_2)) {
+        return Status(Status::IO_ERROR, "Every vertex in a triangle is NaN.");
+      }      
+      const Vector3f& finite_vert = (finite_0 ? tmp_v0 : (finite_1 ? tmp_v1 : tmp_v2));
+      if (! finite_0) tmp_v0 = finite_vert;
+      if (! finite_1) tmp_v1 = finite_vert;
+      if (! finite_2) tmp_v2 = finite_vert;
+    }
     // Store the values in the mesh
     FaceIndex face_id(i);
     const int start_index = 3 * face_id.value();
-    //  we use the CCW winding order of the vertices to encode the normal information
-    if (tmp_norm.Dot(CrossProduct( tmp_v2 - tmp_v1, tmp_v0 - tmp_v1)) > 0) {
-      pos_att->SetAttributeValue(AttributeValueIndex(start_index), tmp_v0.data());
-      pos_att->SetAttributeValue(AttributeValueIndex(start_index + 1), tmp_v1.data());
-      pos_att->SetAttributeValue(AttributeValueIndex(start_index + 2), tmp_v2.data());
-    } else {
+    //  We use the CCW winding order of the vertices to encode the normal information
+    //  Be careful when changing this logic.  It's set up such that if a NaN is present
+    //  in the normal it will not change the ordering of the vertices.
+    if (tmp_norm.Dot(CrossProduct( tmp_v2 - tmp_v1, tmp_v0 - tmp_v1)) <= 0) {
       pos_att->SetAttributeValue(AttributeValueIndex(start_index), tmp_v1.data());
       pos_att->SetAttributeValue(AttributeValueIndex(start_index + 1), tmp_v0.data());
+      pos_att->SetAttributeValue(AttributeValueIndex(start_index + 2), tmp_v2.data());
+    } else {
+      pos_att->SetAttributeValue(AttributeValueIndex(start_index), tmp_v0.data());
+      pos_att->SetAttributeValue(AttributeValueIndex(start_index + 1), tmp_v1.data());
       pos_att->SetAttributeValue(AttributeValueIndex(start_index + 2), tmp_v2.data());
     }
     out_mesh_->SetFace(face_id,
                        {{PointIndex(start_index), PointIndex(start_index + 1),
                                PointIndex(start_index + 2)}});
   }
+
+  std::cout << "Dedupping " << std::endl;
 #ifdef DRACO_ATTRIBUTE_VALUES_DEDUPLICATION_SUPPORTED
   // First deduplicate attribute values.
   if (!out_mesh_->DeduplicateAttributeValues())return status;
