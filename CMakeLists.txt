@@ -403,6 +403,8 @@ set(draco_compression_mesh_dec_sources
     "${draco_src_root}/compression/mesh/mesh_sequential_decoder.h")
 
 set(draco_compression_mesh_enc_sources
+    "${draco_src_root}/compression/mesh/mesh_quantization_carbon.cc"
+    "${draco_src_root}/compression/mesh/mesh_quantization_carbon.h"
     "${draco_src_root}/compression/mesh/mesh_edgebreaker_encoder.cc"
     "${draco_src_root}/compression/mesh/mesh_edgebreaker_encoder.h"
     "${draco_src_root}/compression/mesh/mesh_edgebreaker_encoder_impl.cc"
