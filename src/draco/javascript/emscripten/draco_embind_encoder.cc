@@ -207,37 +207,49 @@ int Encoder::GetNumberOfEncodedPoints() {
 int Encoder::GetNumberOfEncodedFaces() { return encoder_.num_encoded_faces(); }
 
 struct TriangleSpec {
-  std::vector<float> data;
-  emscripten::val GetView() {
-    return emscripten::val(emscripten::typed_memory_view(data.size(), &(data[0])));
-  }
+  unsigned int v0;
+  unsigned int v1;
+  unsigned int v2;
 };
 
-// TODO(nharrington) modify this so you don't need to get the attribute for each triangle
-std::string GetTriangles(draco::Mesh* mesh, TriangleSpec* ts) {
+struct PointSpec {
+  float x;
+  float y;
+  float z;
+};
+
+TriangleSpec GetFace(draco::Mesh* mesh, int face_index) {
+  TriangleSpec tri_spec;
+  draco::Mesh::Face face = mesh->face(draco::FaceIndex(face_index));
+  tri_spec.v0 = face[0].value();
+  tri_spec.v1 = face[1].value();
+  tri_spec.v2 = face[2].value();
+  return tri_spec;
+}
+
+PointSpec GetPoint(draco::Mesh* mesh, int point_index) {
   const int pos_att_id = mesh->GetNamedAttributeId(draco::GeometryAttribute::POSITION);
-  if (pos_att_id < 0) return "Error getting the position attribute of mesh";
-  ts->data.resize(mesh->num_faces() * 9);
   const auto *const pos_att = mesh->attribute(pos_att_id);
-  for (int index = 0; index < mesh->num_faces(); ++index) {
-    draco::Mesh::Face face = mesh->face(draco::FaceIndex(index));
-    draco::Vector3f vs;
-    for (int i = 0; i < 3; ++i) {
-      pos_att->GetMappedValue(face[i], &vs);
-      for (int j = 0; j < 3; ++j) ts->data[9 * index + 3 * i + j] = vs[j];
-    }
-  }
-  return "";
+  PointSpec point_spec;
+  draco::Vector3f vs;
+  pos_att->GetMappedValue(draco::PointIndex(point_index), &vs);
+  point_spec.x = vs[0];
+  point_spec.y = vs[1];
+  point_spec.z = vs[2];  
+  return point_spec;
 }
 
 EMSCRIPTEN_BINDINGS(DracoEncoder) {
   emscripten::class_<TriangleSpec>("TriangleSpec")
-      .constructor<>()
-      .function("GetView", &TriangleSpec::GetView)
+      .property("v0", &TriangleSpec::v0)
+      .property("v1", &TriangleSpec::v1)
+      .property("v2", &TriangleSpec::v2)
       ;
-  
-  emscripten::function("GetTriangles", GetTriangles,
-                       emscripten::allow_raw_pointers());
+  emscripten::class_<PointSpec>("PointSpec")
+      .property("x", &PointSpec::x)
+      .property("y", &PointSpec::y)
+      .property("z", &PointSpec::z)
+      ;
   
   emscripten::class_<DracoInt8Array>("DracoInt8Array")
       .constructor<>()
@@ -313,4 +325,8 @@ EMSCRIPTEN_BINDINGS(DracoEncoder) {
       .function("GetNumberOfEncodedPoints", &Encoder::GetNumberOfEncodedPoints)
       .function("GetNumberOfEncodedFaces", &Encoder::GetNumberOfEncodedFaces)
       ;
+
+  emscripten::function("GetFace", GetFace, emscripten::allow_raw_pointers());
+  emscripten::function("GetPoint", GetPoint, emscripten::allow_raw_pointers());
+
 }
