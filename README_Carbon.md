@@ -24,7 +24,7 @@ cmake .. -DCMAKE_TOOLCHAIN_FILE=/PATH/TO/YOUR/emsdk/emscripten/SOMEVERSIONNUMBER
 make
 ```
 
-You will need to find the right path the the Emscripten.cmake which depends on where you installed emscripten.  Also, remember that this will only work if you have setup the environment appropriately.  Hopefully at this point you have compiled code.  In the build directory there should be a number of biproducts from the build and the two files, DracoEncoderEmbind.js  DracoEncoderEmbind.wasm.  If you have those, you are doing great.
+You will need to find the right path the the Emscripten.cmake which depends on where you installed emscripten.  Also, remember that this will only work if you have setup the environment appropriately.  Hopefully at this point you have compiled code.  In the build directory there should be a number of biproducts from the build and the two files, DracoEncoderEmbind.js  DracoEncoderEmbind.wasm.  If you have those, you are doing great.  We copy those files into c3d/js/src/common/draco/ to make the javascript availble to us.
 
 ## Example Code
 

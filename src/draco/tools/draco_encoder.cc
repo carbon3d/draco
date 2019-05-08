@@ -17,9 +17,12 @@
 #include <fstream>
 
 #include "draco/compression/encode.h"
+#include "draco/compression/mesh/mesh_quantization_carbon.h"
 #include "draco/core/cycle_timer.h"
 #include "draco/io/mesh_io.h"
 #include "draco/io/point_cloud_io.h"
+
+
 
 namespace {
 
@@ -38,6 +41,7 @@ struct Options {
   bool use_metadata;
   std::string input;
   std::string output;
+  bool use_carbon_quantization;
 };
 
 Options::Options()
@@ -50,7 +54,9 @@ Options::Options()
       generic_quantization_bits(8),
       generic_deleted(false),
       compression_level(7),
-      use_metadata(false) {}
+      use_metadata(false),
+      use_carbon_quantization(false)
+{}
 
 void Usage() {
   printf("Usage: draco_encoder [options] -i input\n");
@@ -84,6 +90,8 @@ void Usage() {
       "  --metadata            use metadata to encode extra information in "
       "mesh files.\n");
   printf(
+      "  --use_carbon_quantization   uses carbon3d's default quantization scheme.");
+  printf(
       "\nUse negative quantization values to skip the specified attribute\n");
 }
 
@@ -95,11 +103,16 @@ int StringToInt(const std::string &s) {
 void PrintOptions(const draco::PointCloud &pc, const Options &options) {
   printf("Encoder options:\n");
   printf("  Compression level = %d\n", options.compression_level);
-  if (options.pos_quantization_bits == 0) {
-    printf("  Positions: No quantization\n");
+
+  if (options.use_carbon_quantization) {
+    printf("  Positions: Compressed with carbon quantization.\n");
   } else {
-    printf("  Positions: Quantization = %d bits\n",
-           options.pos_quantization_bits);
+    if (options.pos_quantization_bits == 0) {
+      printf("  Positions: No quantization\n");
+    } else {
+      printf("  Positions: Quantization = %d bits\n",
+             options.pos_quantization_bits);
+    }
   }
 
   if (pc.GetNamedAttributeId(draco::GeometryAttribute::TEX_COORD) >= 0) {
@@ -253,6 +266,8 @@ int main(int argc, char **argv) {
       ++i;
     } else if (!strcmp("--metadata", argv[i])) {
       options.use_metadata = true;
+    } else if (!strcmp("--use_carbon_quantization", argv[i])) {
+      options.use_carbon_quantization = true;
     }
   }
   if (argc < 3 || options.input.empty()) {
@@ -282,7 +297,7 @@ int main(int argc, char **argv) {
     pc = std::move(maybe_pc).value();
   }
 
-  if (options.pos_quantization_bits < 0) {
+  if (options.pos_quantization_bits < 0 && ! options.use_carbon_quantization) {
     printf("Error: Position attribute cannot be skipped.\n");
     return -1;
   }
@@ -325,16 +340,44 @@ int main(int argc, char **argv) {
   }
 #endif
 
+  const bool input_is_mesh = mesh && mesh->num_faces() > 0;
+  
   // Convert compression level to speed (that 0 = slowest, 10 = fastest).
   const int speed = 10 - options.compression_level;
 
   draco::Encoder encoder;
 
+
+  if (options.use_carbon_quantization) {
+    if (! input_is_mesh) {
+      printf("carbon quantization is only for meshes.\n");
+      return -1;
+    }
+    constexpr float kQuantizationGridSpacing_mm = 0.0001220703125;    
+    MeshQuantizationCarbon mesh_quantization;
+    std::string quant_status =
+        mesh_quantization.FillFromMesh(mesh, kQuantizationGridSpacing_mm);
+    if (quant_status != "") {
+      printf("Quantization error: %s\n", quant_status.c_str());
+      return -1;
+    }
+    encoder.SetEncodingMethod(draco::MESH_EDGEBREAKER_ENCODING);
+    float origin[3] = {mesh_quantization.min_values_x(),
+                       mesh_quantization.min_values_y(),
+                       mesh_quantization.min_values_z()};
+    encoder.SetAttributeExplicitQuantization(draco::GeometryAttribute::Type::POSITION,
+                                             mesh_quantization.quantization_bits(),
+                                             3, origin, mesh_quantization.range());
+  } else {
   // Setup encoder options.
-  if (options.pos_quantization_bits > 0) {
-    encoder.SetAttributeQuantization(draco::GeometryAttribute::POSITION,
-                                     options.pos_quantization_bits);
+    if (options.pos_quantization_bits > 0) {
+      encoder.SetAttributeQuantization(draco::GeometryAttribute::POSITION,
+                                       options.pos_quantization_bits);
+    }
   }
+
+
+  
   if (options.tex_coords_quantization_bits > 0) {
     encoder.SetAttributeQuantization(draco::GeometryAttribute::TEX_COORD,
                                      options.tex_coords_quantization_bits);
@@ -357,7 +400,6 @@ int main(int argc, char **argv) {
   PrintOptions(*pc.get(), options);
 
   int ret = -1;
-  const bool input_is_mesh = mesh && mesh->num_faces() > 0;
   if (input_is_mesh)
     ret = EncodeMeshToFile(*mesh, options.output, &encoder);
   else
