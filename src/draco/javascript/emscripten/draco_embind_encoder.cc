@@ -16,6 +16,7 @@
 #include <emscripten/val.h>
 
 #include <math.h>
+#include <stdlib.h>
 #include <iostream>
 
 #include "draco/compression/encode.h"
@@ -206,51 +207,38 @@ int Encoder::GetNumberOfEncodedPoints() {
 
 int Encoder::GetNumberOfEncodedFaces() { return encoder_.num_encoded_faces(); }
 
-struct TriangleSpec {
-  unsigned int v0;
-  unsigned int v1;
-  unsigned int v2;
+
+struct SimpleMesh {
+  std::vector<uint32_t> triangles;
+  std::vector<float> positions;
+  emscripten::val GetTriangleView() {
+    return emscripten::val(emscripten::typed_memory_view(triangles.size(), &(triangles[0])));
+  }
+  emscripten::val GetPointView() {
+    return emscripten::val(emscripten::typed_memory_view(positions.size(), &(positions[0])));
+  }
+  void FillFromMesh(draco::Mesh* mesh) {
+    triangles.resize(mesh->num_faces() * 3);
+    positions.resize(mesh->num_points() * 3);
+    for (int i_face = 0; i_face < mesh->num_faces(); ++i_face) {
+      draco::Mesh::Face face = mesh->face(draco::FaceIndex(i_face));
+      for (int i_vert = 0; i_vert < 3; ++i_vert) {
+        triangles[3 * i_face + i_vert] = face[i_vert].value();
+      }
+    }
+    const int pos_att_id = mesh->GetNamedAttributeId(draco::GeometryAttribute::POSITION);
+    const auto *const pos_att = mesh->attribute(pos_att_id);
+    for (int i_pnt = 0; i_pnt < mesh->num_points(); ++i_pnt) {
+      draco::Vector3f vs;
+      pos_att->GetMappedValue(draco::PointIndex(i_pnt), &vs);
+      for (int i_dim = 0; i_dim < 3; ++i_dim) {
+        positions[3 * i_pnt + i_dim] = vs[i_dim];
+      }
+    }
+  }
 };
-
-struct PointSpec {
-  float x;
-  float y;
-  float z;
-};
-
-TriangleSpec GetFace(draco::Mesh* mesh, int face_index) {
-  TriangleSpec tri_spec;
-  draco::Mesh::Face face = mesh->face(draco::FaceIndex(face_index));
-  tri_spec.v0 = face[0].value();
-  tri_spec.v1 = face[1].value();
-  tri_spec.v2 = face[2].value();
-  return tri_spec;
-}
-
-PointSpec GetPoint(draco::Mesh* mesh, int point_index) {
-  const int pos_att_id = mesh->GetNamedAttributeId(draco::GeometryAttribute::POSITION);
-  const auto *const pos_att = mesh->attribute(pos_att_id);
-  PointSpec point_spec;
-  draco::Vector3f vs;
-  pos_att->GetMappedValue(draco::PointIndex(point_index), &vs);
-  point_spec.x = vs[0];
-  point_spec.y = vs[1];
-  point_spec.z = vs[2];  
-  return point_spec;
-}
 
 EMSCRIPTEN_BINDINGS(DracoEncoder) {
-  emscripten::class_<TriangleSpec>("TriangleSpec")
-      .property("v0", &TriangleSpec::v0)
-      .property("v1", &TriangleSpec::v1)
-      .property("v2", &TriangleSpec::v2)
-      ;
-  emscripten::class_<PointSpec>("PointSpec")
-      .property("x", &PointSpec::x)
-      .property("y", &PointSpec::y)
-      .property("z", &PointSpec::z)
-      ;
-  
   emscripten::class_<DracoInt8Array>("DracoInt8Array")
       .constructor<>()
       .function("size", &DracoInt8Array::size)
@@ -326,7 +314,10 @@ EMSCRIPTEN_BINDINGS(DracoEncoder) {
       .function("GetNumberOfEncodedFaces", &Encoder::GetNumberOfEncodedFaces)
       ;
 
-  emscripten::function("GetFace", GetFace, emscripten::allow_raw_pointers());
-  emscripten::function("GetPoint", GetPoint, emscripten::allow_raw_pointers());
-
+  emscripten::class_<SimpleMesh>("SimpleMesh")
+      .constructor<>()      
+      .function("FillFromMesh", &SimpleMesh::FillFromMesh, emscripten::allow_raw_pointers())
+      .function("GetTriangleView", &SimpleMesh::GetTriangleView)
+      .function("GetPointView", &SimpleMesh::GetPointView)
+      ;
 }
