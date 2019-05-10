@@ -9,16 +9,13 @@ std::string MeshQuantizationCarbon::FillFromMesh(draco::Mesh *mesh, float grid_d
   const int num_components = pos_att->num_components();
   if (num_components != 3) return "The position attribute does not have 3 values.";
   range_ = 0.f;
-  min_values_ = std::vector<float>(num_components, 0.f);
-  const std::unique_ptr<float[]> max_values(new float[num_components]);
-  const std::unique_ptr<float[]> att_val(new float[num_components]);
-  pos_att->GetValue(draco::AttributeValueIndex(0), att_val.get());
-  pos_att->GetValue(draco::AttributeValueIndex(0), min_values_.data());
-  pos_att->GetValue(draco::AttributeValueIndex(0), max_values.get());
-  for (draco::AttributeValueIndex i(1); i < static_cast<uint32_t>(pos_att->size());
-       ++i) {
-    pos_att->GetValue(i, att_val.get());
-    for (int c = 0; c < num_components; ++c) {
+  float max_values[3];
+  float att_val[3];
+  pos_att->GetValue(draco::AttributeValueIndex(0), min_values_);
+  pos_att->GetValue(draco::AttributeValueIndex(0), max_values);
+  for (draco::AttributeValueIndex i(1); i < pos_att->size(); ++i) {
+    pos_att->GetValue(i, att_val);
+    for (int c = 0; c < 3; ++c) {
       if (min_values_[c] > att_val[c])
         min_values_[c] = att_val[c];
       if (max_values[c] < att_val[c])

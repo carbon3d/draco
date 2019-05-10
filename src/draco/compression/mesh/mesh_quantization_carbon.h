@@ -6,9 +6,12 @@ class MeshQuantizationCarbon {
  public:
   MeshQuantizationCarbon() :
       quantization_bits_(-1),
-      range_(0),
-      min_values_(3, 0)
-  {}
+      range_(0)
+  {
+    for (int i = 0; i < 3; ++i) {
+      min_values_[i] = 0;
+    }
+  }
   bool IsSet() {return quantization_bits_ != -1;}
   int quantization_bits() const {return quantization_bits_;}
   float range() const {return range_;}
@@ -19,6 +22,6 @@ class MeshQuantizationCarbon {
  private:
   int quantization_bits_;
   float range_;
-  std::vector<float> min_values_;
+  float min_values_[3];
 };
 
