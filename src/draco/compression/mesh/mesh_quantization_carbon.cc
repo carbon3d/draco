@@ -3,6 +3,7 @@
 
 std::string MeshQuantizationCarbon::FillFromMesh(draco::Mesh *mesh, float grid_delta) {
   constexpr int kMaxNumQuantizationBits = 30;
+  constexpr int kMinNumQuantizationBits = 1;
   if (grid_delta < 0) return "Negative Grid Delta";  
   const draco::PointAttribute *const pos_att =
       mesh->GetNamedAttribute(draco::GeometryAttribute::POSITION);
@@ -30,11 +31,13 @@ std::string MeshQuantizationCarbon::FillFromMesh(draco::Mesh *mesh, float grid_d
   // In case all values are the same, initialize the range to unit length. This
   // will ensure that all values are quantized properly to the same value.
   if (range_ == 0.f) range_ = 1.f;
-  quantization_bits_ = ceilf(log(range_ / grid_delta) / log(2));
+  quantization_bits_ = ceilf(log((range_ / grid_delta) + 1) / log(2));
   if (quantization_bits_ > kMaxNumQuantizationBits) {
     quantization_bits_ = kMaxNumQuantizationBits;
+  } else if (quantization_bits_ < kMinNumQuantizationBits) {
+    quantization_bits_ = kMinNumQuantizationBits;
   } else {
-    range_ = grid_delta * powf(2, quantization_bits_);
+    range_ = grid_delta * (powf(2, quantization_bits_) - 1);
   }
   return "";
 }
