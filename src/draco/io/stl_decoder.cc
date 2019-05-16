@@ -251,7 +251,6 @@ Status StlDecoder::DecodeInternal() {
                                PointIndex(start_index + 2)}});
   }
 
-  std::cout << "Dedupping " << std::endl;
 #ifdef DRACO_ATTRIBUTE_VALUES_DEDUPLICATION_SUPPORTED
   // First deduplicate attribute values.
   if (!out_mesh_->DeduplicateAttributeValues())return status;
