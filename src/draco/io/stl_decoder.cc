@@ -27,8 +27,6 @@ namespace draco {
 
 StlDecoder::StlDecoder()
     : num_stl_faces_(0),
-      is_binary_mode_(true),
-      //attribute_element_types_(2, -1),
       attribute_element_types_(1, -1),
       out_mesh_(nullptr)
 {}
@@ -58,7 +56,7 @@ Status StlDecoder::DecodeFromBuffer(DecoderBuffer *buffer, Mesh *out_mesh) {
   return DecodeInternal();
 }
 
-Status StlDecoder::ParseHeader() {
+Status StlDecoder::ParseHeader(bool* is_binary) {
   char ascii_buffer[5];
   parser::SkipWhitespace(&buffer_);
   if (! buffer_.Decode(ascii_buffer, 5)) {
@@ -68,30 +66,16 @@ Status StlDecoder::ParseHeader() {
   if (! strncmp(ascii_buffer, "solid ", 5)) {
     std::string tmp_str;
     num_stl_faces_ = 0;
-    is_binary_mode_ = false;
-    parser::SkipWhitespace(&buffer_);
-    int64_t buffer_name_seek_point = buffer_.decoded_size();
-    if (! parser::ParseString(&buffer_, &tmp_str)) {
-      return Status(Status::IO_ERROR, "STL file is missing face data.");
-    }
-    // The ascii stl file format allows for an optional name parameter after
-    // the word solid before listing the facets.  Check for the weird choice of
-    // facet as a solid name
-    if (tmp_str == "facet") {
-      std::string repeat_str;
-      int64_t buffer_post_facet_seek_point = buffer_.decoded_size();
-      if (! parser::ParseString(&buffer_, &repeat_str)) {
-        return Status(Status::IO_ERROR, "STL file has invalid header.");
+    (*is_binary) = false;
+    int64_t buffer_seek_point = buffer_.decoded_size();
+    do {
+      parser::SkipWhitespace(&buffer_);
+      buffer_seek_point = buffer_.decoded_size();
+      if (! parser::ParseString(&buffer_, &tmp_str)) {
+        return Status(Status::IO_ERROR, "STL file is missing face data.");
       }
-      if (repeat_str == "facet") {
-        solid_name_ = tmp_str;
-        buffer_.StartDecodingFrom(buffer_post_facet_seek_point);
-      } else {
-        buffer_.StartDecodingFrom(buffer_name_seek_point);
-      }
-    } else {
-      solid_name_ = tmp_str;
-    }
+    } while (tmp_str != "facet");
+    buffer_.StartDecodingFrom(buffer_seek_point);
   } else {
     buffer_.StartDecodingFrom(80);
     uint32_t tmp_num_faces = 0;
@@ -99,7 +83,7 @@ Status StlDecoder::ParseHeader() {
       return Status(Status::IO_ERROR, "Binary STL file has invalid header.");
     }
     num_stl_faces_ = tmp_num_faces;
-    is_binary_mode_ = true;
+    (*is_binary) = true;
   }
   return Status(Status::OK);
 }
@@ -158,23 +142,23 @@ Status StlDecoder::ParseAsciiFace(Vector3f* v0, Vector3f* v1, Vector3f* v2, Vect
   if (!parser::ParseString(&buffer_, &tmp_str)) return facet_error;
   if (tmp_str == "endsolid") {
     return status;
-  } else if (tmp_str != "facet") return facet_error;
-  if (! ExpectString("normal")) return facet_error;
+  } else if (tmp_str != "facet") {std::cout << "Line: " << __LINE__ << std::endl << tmp_str << std::endl; return facet_error;}
+  if (! ExpectString("normal")) {std::cout << "Line: " << __LINE__ << std::endl; return facet_error;}
   status = FillThreeVec(normal);
   if (! status.ok()) return status;
-  if (! ExpectString("outer")) return facet_error;
-  if (! ExpectString("loop")) return facet_error;
-  if (! ExpectString("vertex")) return facet_error;
+  if (! ExpectString("outer")) {std::cout << "Line: " << __LINE__ << std::endl; return facet_error;}
+  if (! ExpectString("loop")) {std::cout << "Line: " << __LINE__ << std::endl; return facet_error;}
+  if (! ExpectString("vertex")) {std::cout << "Line: " << __LINE__ << std::endl; return facet_error;}
   status = FillThreeVec(v0);
   if (! status.ok()) return status;
-  if (! ExpectString("vertex")) return facet_error;
+  if (! ExpectString("vertex")) {std::cout << "Line: " << __LINE__ << std::endl; return facet_error;}
   status = FillThreeVec(v1);
   if (! status.ok()) return status;
-  if (! ExpectString("vertex")) return facet_error;
+  if (! ExpectString("vertex")) {std::cout << "Line: " << __LINE__ << std::endl; return facet_error;}
   status = FillThreeVec(v2);
   if (! status.ok()) return status;
-  if (! ExpectString("endloop")) return facet_error;
-  if (! ExpectString("endfacet")) return facet_error;
+  if (! ExpectString("endloop")) {std::cout << "Line: " << __LINE__ << std::endl; return facet_error;}
+  if (! ExpectString("endfacet")) {std::cout << "Line: " << __LINE__ << std::endl; return facet_error;}
   *is_valid_triangle = true;
   return status;
 }
@@ -186,23 +170,29 @@ Status StlDecoder::DecodeInternal() {
   Vector3f tmp_v2;
   std::vector<Vector3f> tmp_three_vec_storage;
   Status status(Status::OK);
-  status = ParseHeader();
+  bool is_binary = false;
+  status = ParseHeader(&is_binary);
   if (! status.ok()) return status;
-  if (! is_binary_mode_) {
+  if (! is_binary) {
     // For the ASCII formatted STL file we do not know how many triangles are specified in the file
     // without reading the entire file.
     bool is_valid_triangle;
     Status status;
-    do {
-      status = ParseAsciiFace(&tmp_v0, &tmp_v1, &tmp_v2, &tmp_norm, &is_valid_triangle);
-      if (! status.ok()) return status;
-      if (is_valid_triangle) {
-        tmp_three_vec_storage.push_back(tmp_norm);
-        tmp_three_vec_storage.push_back(tmp_v0);
-        tmp_three_vec_storage.push_back(tmp_v1);
-        tmp_three_vec_storage.push_back(tmp_v2);
+    while (1) {
+      do {
+        status = ParseAsciiFace(&tmp_v0, &tmp_v1, &tmp_v2, &tmp_norm, &is_valid_triangle);
+        if (! status.ok()) return status;
+        if (is_valid_triangle) {
+          tmp_three_vec_storage.push_back(tmp_norm);
+          tmp_three_vec_storage.push_back(tmp_v0);
+          tmp_three_vec_storage.push_back(tmp_v1);
+          tmp_three_vec_storage.push_back(tmp_v2);
+        }
+      } while (is_valid_triangle);
+      if (buffer_.remaining_size() < 5 || ! ParseHeader(&is_binary).ok() || is_binary) {
+        break;
       }
-    } while (is_valid_triangle);
+    } 
     num_stl_faces_ = tmp_three_vec_storage.size() / 4;
   }
   out_mesh_->SetNumFaces(num_stl_faces_);
@@ -216,7 +206,7 @@ Status StlDecoder::DecodeInternal() {
   attribute_element_types_[pos_att_id] = MESH_VERTEX_ATTRIBUTE;
   for (int i = 0; i < num_stl_faces_; ++i) {
     // Read a triangle face
-    if (is_binary_mode_) {
+    if (is_binary) {
       status = ParseBinaryFace(&tmp_v0, &tmp_v1, &tmp_v2, &tmp_norm);
       if (! status.ok()) return status;
     } else {

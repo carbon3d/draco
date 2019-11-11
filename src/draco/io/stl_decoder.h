@@ -33,7 +33,7 @@ class StlDecoder {
   Status DecodeFromBuffer(DecoderBuffer *buffer, Mesh *out_mesh);
  protected:
   DecoderBuffer *buffer() { return &buffer_; }
-  Status ParseHeader();
+  Status ParseHeader(bool* is_binary);
   Status ParseAsciiFace(Vector3f* v0, Vector3f* v1, Vector3f* v2,
                         Vector3f* normal, bool* is_valid_triangle);
   Status ParseBinaryFace(Vector3f* v0, Vector3f* v1, Vector3f* v2,
@@ -41,9 +41,7 @@ class StlDecoder {
   Status DecodeInternal();
  private:
   uint32_t num_stl_faces_;
-  bool is_binary_mode_;
   DecoderBuffer buffer_;
-  std::string solid_name_;
   std::vector<int8_t> attribute_element_types_;
   // Data structure that stores the decoded data. |out_mesh_| must be set
   Mesh *out_mesh_;
