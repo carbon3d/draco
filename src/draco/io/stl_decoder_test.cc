@@ -80,12 +80,11 @@ TEST_F(StlDecoderTest, ValidBinarySTL) {
   test_decoding_with_points("40mmcube.stl", 12, expected_verts);
 }
 
-
 TEST_F(StlDecoderTest, ValidAsciiSTL) {
   test_decoding("ascii_sphere.stl", 228);
   test_decoding("ascii_block100.stl", 12);
-  test_decoding("ascii_facet_name.stl", 12);
   test_decoding("ascii_noname.stl", 12);
+  test_decoding("ascii_multisolid.stl", 24);  
 }
 
 TEST_F(StlDecoderTest, InfinityBinarySTL) {

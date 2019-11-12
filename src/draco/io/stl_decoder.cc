@@ -142,23 +142,23 @@ Status StlDecoder::ParseAsciiFace(Vector3f* v0, Vector3f* v1, Vector3f* v2, Vect
   if (!parser::ParseString(&buffer_, &tmp_str)) return facet_error;
   if (tmp_str == "endsolid") {
     return status;
-  } else if (tmp_str != "facet") {std::cout << "Line: " << __LINE__ << std::endl << tmp_str << std::endl; return facet_error;}
-  if (! ExpectString("normal")) {std::cout << "Line: " << __LINE__ << std::endl; return facet_error;}
+  } else if (tmp_str != "facet") return facet_error;
+  if (! ExpectString("normal")) return facet_error;
   status = FillThreeVec(normal);
   if (! status.ok()) return status;
-  if (! ExpectString("outer")) {std::cout << "Line: " << __LINE__ << std::endl; return facet_error;}
-  if (! ExpectString("loop")) {std::cout << "Line: " << __LINE__ << std::endl; return facet_error;}
-  if (! ExpectString("vertex")) {std::cout << "Line: " << __LINE__ << std::endl; return facet_error;}
+  if (! ExpectString("outer")) return facet_error;
+  if (! ExpectString("loop")) return facet_error;
+  if (! ExpectString("vertex")) return facet_error;
   status = FillThreeVec(v0);
   if (! status.ok()) return status;
-  if (! ExpectString("vertex")) {std::cout << "Line: " << __LINE__ << std::endl; return facet_error;}
+  if (! ExpectString("vertex")) return facet_error;
   status = FillThreeVec(v1);
   if (! status.ok()) return status;
-  if (! ExpectString("vertex")) {std::cout << "Line: " << __LINE__ << std::endl; return facet_error;}
+  if (! ExpectString("vertex")) return facet_error;
   status = FillThreeVec(v2);
   if (! status.ok()) return status;
-  if (! ExpectString("endloop")) {std::cout << "Line: " << __LINE__ << std::endl; return facet_error;}
-  if (! ExpectString("endfacet")) {std::cout << "Line: " << __LINE__ << std::endl; return facet_error;}
+  if (! ExpectString("endloop")) return facet_error;
+  if (! ExpectString("endfacet")) return facet_error;
   *is_valid_triangle = true;
   return status;
 }

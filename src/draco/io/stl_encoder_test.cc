@@ -66,7 +66,6 @@ TEST_F(StlEncoderTest, TestStlEncodingAll) {
   test_encoding("40mmcube.stl");
   test_encoding("ascii_sphere.stl");
   test_encoding("ascii_block100.stl");
-  test_encoding("ascii_facet_name.stl");
   test_encoding("ascii_noname.stl");
 }
 
