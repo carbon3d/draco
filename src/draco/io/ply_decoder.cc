@@ -121,7 +121,7 @@ Status PlyDecoder::DecodeFaceData(const PlyElement *face_element) {
   return OkStatus();
 }
 
-template <typename DataTypeT>
+template <typename DataTypeT, typename DataTypeU>
 bool PlyDecoder::ReadPropertiesToAttribute(
     const std::vector<const PlyProperty *> &properties,
     PointAttribute *attribute, int num_vertices) {
@@ -131,11 +131,11 @@ bool PlyDecoder::ReadPropertiesToAttribute(
     readers.push_back(std::unique_ptr<PlyPropertyReader<DataTypeT>>(
         new PlyPropertyReader<DataTypeT>(properties[prop])));
   }
-  std::vector<DataTypeT> memory(properties.size());
+  std::vector<DataTypeU> memory(properties.size());
   for (PointIndex::ValueType i = 0; i < static_cast<uint32_t>(num_vertices);
        ++i) {
     for (int prop = 0; prop < properties.size(); ++prop) {
-      memory[prop] = readers[prop]->ReadValue(i);
+      memory[prop] = static_cast<DataTypeU>(readers[prop]->ReadValue(i));
     }
     attribute->SetAttributeValue(AttributeValueIndex(i), memory.data());
   }
@@ -165,29 +165,37 @@ Status PlyDecoder::DecodeVertexData(const PlyElement *vertex_element) {
       return Status(Status::INVALID_PARAMETER,
                     "x, y, and z properties must have the same type");
     }
-    // TODO(ostava): For now assume the position types are float32 or int32.
     const DataType dt = x_prop->data_type();
-    if (dt != DT_FLOAT32 && dt != DT_INT32)
+    if (dt != DT_FLOAT32 && dt != DT_INT32 && dt != DT_FLOAT64)
       return Status(Status::INVALID_PARAMETER,
-                    "x, y, and z properties must be of type float32 or int32");
-
+                    "x, y, and z properties must be of type float32, float64, or int32");
     GeometryAttribute va;
-    va.Init(GeometryAttribute::POSITION, nullptr, 3, dt, false,
-            DataTypeLength(dt) * 3, 0);
+    if (dt == DT_FLOAT64) {
+      // To deal with double precision floats we convert it to a single precision before storing in the point
+      // cloud
+      va.Init(GeometryAttribute::POSITION, nullptr, 3, DT_FLOAT32, false,
+              DataTypeLength(DT_FLOAT32) * 3, 0);
+    } else {
+      va.Init(GeometryAttribute::POSITION, nullptr, 3, dt, false,
+              DataTypeLength(dt) * 3, 0);
+    }
     const int att_id = out_point_cloud_->AddAttribute(va, true, num_vertices);
     std::vector<const PlyProperty *> properties;
     properties.push_back(x_prop);
     properties.push_back(y_prop);
     properties.push_back(z_prop);
     if (dt == DT_FLOAT32) {
-      ReadPropertiesToAttribute<float>(
+      ReadPropertiesToAttribute<float, float>(
           properties, out_point_cloud_->attribute(att_id), num_vertices);
     } else if (dt == DT_INT32) {
-      ReadPropertiesToAttribute<int32_t>(
+      ReadPropertiesToAttribute<int32_t, int32_t>(
+          properties, out_point_cloud_->attribute(att_id), num_vertices);
+    } else if (dt == DT_FLOAT64) {
+      // casts the doubles to float32
+      ReadPropertiesToAttribute<double, float>(
           properties, out_point_cloud_->attribute(att_id), num_vertices);
     }
   }
-
   // Decode normals if present.
   const PlyProperty *const n_x_prop = vertex_element->GetPropertyByName("nx");
   const PlyProperty *const n_y_prop = vertex_element->GetPropertyByName("ny");

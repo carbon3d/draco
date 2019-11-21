@@ -51,7 +51,8 @@ class PlyDecoder {
   Status DecodeFaceData(const PlyElement *face_element);
   Status DecodeVertexData(const PlyElement *vertex_element);
 
-  template <typename DataTypeT>
+  // Reads the data as T and stores it as U
+  template <typename DataTypeT, typename DataTypeU>
   bool ReadPropertiesToAttribute(
       const std::vector<const PlyProperty *> &properties,
       PointAttribute *attribute, int num_vertices);
