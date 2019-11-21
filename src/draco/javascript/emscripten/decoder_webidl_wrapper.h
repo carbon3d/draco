@@ -31,8 +31,33 @@ typedef draco::EncodedGeometryType draco_EncodedGeometryType;
 typedef draco::Status draco_Status;
 typedef draco::Status::Code draco_StatusCode;
 
-// To generate Draco JabvaScript bindings you must have emscripten installed.
+// To generate Draco JavaScript bindings you must have emscripten installed.
 // Then run make -f Makefile.emcc jslib.
+template <typename T>
+class DracoArray {
+ public:
+  T GetValue(int index) const { return values_[index]; }
+
+  void Resize(int size) { values_.resize(size); }
+  void MoveData(std::vector<T> &&values) { values_ = std::move(values); }
+
+  // Directly sets a value for a specific index. The array has to be already
+  // allocated at this point (using Resize() method).
+  void SetValue(int index, T val) { values_[index] = val; }
+
+  int size() const { return values_.size(); }
+
+ private:
+  std::vector<T> values_;
+};
+
+using DracoFloat32Array = DracoArray<float>;
+using DracoInt8Array = DracoArray<int8_t>;
+using DracoUInt8Array = DracoArray<uint8_t>;
+using DracoInt16Array = DracoArray<int16_t>;
+using DracoUInt16Array = DracoArray<uint16_t>;
+using DracoInt32Array = DracoArray<int32_t>;
+using DracoUInt32Array = DracoArray<uint32_t>;
 
 class MetadataQuerier {
  public:
@@ -43,6 +68,10 @@ class MetadataQuerier {
   // This function does not guarantee that entry's type is long.
   long GetIntEntry(const draco::Metadata &metadata,
                    const char *entry_name) const;
+
+  // This function does not guarantee that entry types are long.
+  void GetIntEntryArray(const draco::Metadata &metadata, const char *entry_name,
+                        DracoInt32Array *out_values) const;
 
   // This function does not guarantee that entry's type is double.
   double GetDoubleEntry(const draco::Metadata &metadata,
@@ -62,108 +91,6 @@ class MetadataQuerier {
 
   // Cached value for GetStringEntry() to avoid scoping issues.
   std::string last_string_returned_;
-};
-
-class DracoFloat32Array {
- public:
-  DracoFloat32Array();
-  float GetValue(int index) const;
-
-  // In case |values| is nullptr, the data is allocated but not initialized.
-  bool SetValues(const float *values, int count);
-
-  // Directly sets a value for a specific index. The array has to be already
-  // allocated at this point (using SetValues() method).
-  void SetValue(int index, float val) { values_[index] = val; }
-
-  int size() const { return values_.size(); }
-
- private:
-  std::vector<float> values_;
-};
-
-class DracoInt8Array {
- public:
-  DracoInt8Array();
-
-  int8_t GetValue(int index) const;
-  bool SetValues(const int8_t *values, int count);
-
-  void SetValue(int index, int8_t val) { values_[index] = val; }
-
-  int size() const { return values_.size(); }
-
- private:
-  std::vector<int8_t> values_;
-};
-
-class DracoUInt8Array {
- public:
-  DracoUInt8Array();
-  uint8_t GetValue(int index) const;
-  bool SetValues(const uint8_t *values, int count);
-
-  void SetValue(int index, uint8_t val) { values_[index] = val; }
-  int size() const { return values_.size(); }
-
- private:
-  std::vector<uint8_t> values_;
-};
-
-class DracoInt16Array {
- public:
-  DracoInt16Array();
-
-  int16_t GetValue(int index) const;
-  bool SetValues(const int16_t *values, int count);
-
-  void SetValue(int index, int16_t val) { values_[index] = val; }
-
-  int size() const { return values_.size(); }
-
- private:
-  std::vector<int16_t> values_;
-};
-
-class DracoUInt16Array {
- public:
-  DracoUInt16Array();
-  uint16_t GetValue(int index) const;
-  bool SetValues(const uint16_t *values, int count);
-
-  void SetValue(int index, uint16_t val) { values_[index] = val; }
-  int size() const { return values_.size(); }
-
- private:
-  std::vector<uint16_t> values_;
-};
-
-class DracoInt32Array {
- public:
-  DracoInt32Array();
-
-  int32_t GetValue(int index) const;
-  bool SetValues(const int *values, int count);
-
-  void SetValue(int index, int32_t val) { values_[index] = val; }
-
-  int size() const { return values_.size(); }
-
- private:
-  std::vector<int32_t> values_;
-};
-
-class DracoUInt32Array {
- public:
-  DracoUInt32Array();
-  uint32_t GetValue(int index) const;
-  bool SetValues(const uint32_t *values, int count);
-
-  void SetValue(int index, uint32_t val) { values_[index] = val; }
-  int size() const { return values_.size(); }
-
- private:
-  std::vector<uint32_t> values_;
 };
 
 // Class used by emscripten WebIDL Binder [1] to wrap calls to decode Draco
@@ -295,9 +222,8 @@ class Decoder {
          pa.data_type() == draco_unsigned_type) &&
         pa.is_mapping_identity()) {
       // Copy values directly to the output vector.
-      out_values->SetValues(reinterpret_cast<const ValueTypeT *>(
-                                pa.GetAddress(draco::AttributeValueIndex(0))),
-                            num_entries);
+      const auto ptr = pa.GetAddress(draco::AttributeValueIndex(0));
+      out_values->MoveData({ptr, ptr + num_entries});
       return true;
     }
 
@@ -305,7 +231,7 @@ class Decoder {
     std::vector<ValueTypeT> values(components);
     int entry_id = 0;
 
-    out_values->SetValues(nullptr, num_entries);
+    out_values->Resize(num_entries);
     for (draco::PointIndex i(0); i < num_points; ++i) {
       const draco::AttributeValueIndex val_index = pa.mapped_index(i);
       if (!pa.ConvertValue<ValueTypeT>(val_index, &values[0]))

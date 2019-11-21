@@ -97,7 +97,7 @@ interface Metadata {
 
 enum draco_StatusCode {
   "draco_Status::OK",
-  "draco_Status::ERROR",
+  "draco_Status::DRACO_ERROR",
   "draco_Status::IO_ERROR",
   "draco_Status::INVALID_PARAMETER",
   "draco_Status::UNSUPPORTED_VERSION",
@@ -109,22 +109,6 @@ interface Status {
   draco_StatusCode code();
   boolean ok();
   [Const] DOMString error_msg();
-};
-
-interface MetadataQuerier {
-  void MetadataQuerier();
-
-  boolean HasEntry([Ref, Const] Metadata metadata,
-                   [Const] DOMString entry_name);
-  long GetIntEntry([Ref, Const] Metadata metadata,
-                   [Const] DOMString entry_name);
-  double GetDoubleEntry([Ref, Const] Metadata metadata,
-                        [Const] DOMString entry_name);
-  [Const] DOMString GetStringEntry([Ref, Const] Metadata metadata,
-                                   [Const] DOMString entry_name);
-
-  long NumEntries([Ref, Const] Metadata metadata);
-  [Const] DOMString GetEntryName([Ref, Const] Metadata metadata, long entry_id);
 };
 
 // Draco version of typed arrays. The memory of these arrays is allocated on the
@@ -169,6 +153,25 @@ interface DracoUInt32Array {
   void DracoUInt32Array();
   unsigned long GetValue(long index);
   long size();
+};
+
+interface MetadataQuerier {
+  void MetadataQuerier();
+
+  boolean HasEntry([Ref, Const] Metadata metadata,
+                   [Const] DOMString entry_name);
+  long GetIntEntry([Ref, Const] Metadata metadata,
+                   [Const] DOMString entry_name);
+  void GetIntEntryArray([Ref, Const] Metadata metadata,
+                        [Const] DOMString entry_name,
+                        DracoInt32Array out_values);
+  double GetDoubleEntry([Ref, Const] Metadata metadata,
+                        [Const] DOMString entry_name);
+  [Const] DOMString GetStringEntry([Ref, Const] Metadata metadata,
+                                   [Const] DOMString entry_name);
+
+  long NumEntries([Ref, Const] Metadata metadata);
+  [Const] DOMString GetEntryName([Ref, Const] Metadata metadata, long entry_id);
 };
 
 interface Decoder {
