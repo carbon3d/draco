@@ -426,6 +426,8 @@ set(
 
 set(
   draco_compression_mesh_enc_sources
+  "${draco_src_root}/compression/mesh/mesh_quantization_carbon.cc"
+  "${draco_src_root}/compression/mesh/mesh_quantization_carbon.h" 
   "${draco_src_root}/compression/mesh/mesh_edgebreaker_encoder.cc"
   "${draco_src_root}/compression/mesh/mesh_edgebreaker_encoder.h"
   "${draco_src_root}/compression/mesh/mesh_edgebreaker_encoder_impl.cc"
@@ -609,70 +611,6 @@ set(draco_js_enc_sources
     "${draco_src_root}/javascript/emscripten/draco_encoder_glue_wrapper.cc"
     "${draco_src_root}/javascript/emscripten/encoder_webidl_wrapper.cc")
 
-<<<<<<< HEAD
-set(draco_animation_js_dec_sources
-    "${draco_src_root}/javascript/emscripten/animation_decoder_webidl_wrapper.cc"
-    "${draco_src_root}/javascript/emscripten/draco_animation_decoder_glue_wrapper.cc")
-
-set(draco_animation_js_enc_sources
-    "${draco_src_root}/javascript/emscripten/animation_encoder_webidl_wrapper.cc"
-    "${draco_src_root}/javascript/emscripten/draco_animation_encoder_glue_wrapper.cc")
-
-set(draco_test_sources
-    "${draco_src_root}/animation/keyframe_animation_encoding_test.cc"
-    "${draco_src_root}/animation/keyframe_animation_test.cc"
-    "${draco_src_root}/attributes/point_attribute_test.cc"
-    "${draco_src_root}/compression/attributes/point_d_vector_test.cc"
-    "${draco_src_root}/compression/attributes/prediction_schemes/prediction_scheme_normal_octahedron_canonicalized_transform_test.cc"
-    "${draco_src_root}/compression/attributes/prediction_schemes/prediction_scheme_normal_octahedron_transform_test.cc"
-    "${draco_src_root}/compression/attributes/sequential_integer_attribute_encoding_test.cc"
-    "${draco_src_root}/compression/bit_coders/rans_coding_test.cc"
-    "${draco_src_root}/compression/decode_test.cc"
-    "${draco_src_root}/compression/encode_test.cc"
-    "${draco_src_root}/compression/entropy/shannon_entropy_test.cc"
-    "${draco_src_root}/compression/entropy/symbol_coding_test.cc"
-    "${draco_src_root}/compression/mesh/mesh_edgebreaker_encoding_test.cc"
-    "${draco_src_root}/compression/mesh/mesh_encoder_test.cc"
-    "${draco_src_root}/compression/point_cloud/point_cloud_kd_tree_encoding_test.cc"
-    "${draco_src_root}/compression/point_cloud/point_cloud_sequential_encoding_test.cc"
-    "${draco_src_root}/core/buffer_bit_coding_test.cc"
-    "${draco_src_root}/core/draco_test_base.h"
-    "${draco_src_root}/core/draco_test_utils.cc"
-    "${draco_src_root}/core/draco_test_utils.h"
-    "${draco_src_root}/core/draco_tests.cc"
-    "${draco_src_root}/core/math_utils_test.cc"
-    "${draco_src_root}/core/quantization_utils_test.cc"
-    "${draco_src_root}/core/status_test.cc"
-    "${draco_src_root}/core/vector_d_test.cc"
-    "${draco_src_root}/io/obj_decoder_test.cc"
-    "${draco_src_root}/io/obj_encoder_test.cc"
-    "${draco_src_root}/io/ply_decoder_test.cc"
-    "${draco_src_root}/io/ply_reader_test.cc"
-    "${draco_src_root}/io/point_cloud_io_test.cc"
-    "${draco_src_root}/io/stl_decoder_test.cc"
-    "${draco_src_root}/io/stl_encoder_test.cc"
-    "${draco_src_root}/mesh/mesh_are_equivalent_test.cc"
-    "${draco_src_root}/mesh/mesh_cleanup_test.cc"
-    "${draco_src_root}/mesh/triangle_soup_mesh_builder_test.cc"
-    "${draco_src_root}/metadata/metadata_encoder_test.cc"
-    "${draco_src_root}/metadata/metadata_test.cc"
-    "${draco_src_root}/point_cloud/point_cloud_builder_test.cc"
-    "${draco_src_root}/point_cloud/point_cloud_test.cc"
-    "${draco_src_root}/compression/mesh/mesh_quantization_carbon_test.cc"
-    )
-
-set(draco_version_sources
-    "${draco_build_dir}/draco_version.cc"
-    "${draco_build_dir}/draco_version.h")
-
-set(draco_unity_plug_sources
-    "${draco_src_root}/unity/draco_unity_plugin.cc"
-    "${draco_src_root}/unity/draco_unity_plugin.h")
-
-set(draco_maya_plug_sources
-    "${draco_src_root}/maya/draco_maya_plugin.cc"
-    "${draco_src_root}/maya/draco_maya_plugin.h")
-=======
 set(
   draco_animation_js_dec_sources
   "${draco_src_root}/javascript/emscripten/animation_decoder_webidl_wrapper.cc"
@@ -723,7 +661,9 @@ set(
   "${draco_src_root}/metadata/metadata_encoder_test.cc"
   "${draco_src_root}/metadata/metadata_test.cc"
   "${draco_src_root}/point_cloud/point_cloud_builder_test.cc"
-  "${draco_src_root}/point_cloud/point_cloud_test.cc")
+  "${draco_src_root}/point_cloud/point_cloud_test.cc"
+  "${draco_src_root}/compression/mesh/mesh_quantization_carbon_test.cc"
+  )
 
 set(draco_version_sources "${draco_build_dir}/draco_version.cc"
                           "${draco_build_dir}/draco_version.h")
