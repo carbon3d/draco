@@ -73,7 +73,7 @@ draco::Status ReadMeshFromBuffer(draco::DecoderBuffer* buffer,
     draco::StlDecoder stl_decoder;
     return stl_decoder.DecodeFromBuffer(buffer, mesh);
   }
-  return draco::Status(draco::Status::ERROR, "Unknown file type");
+  return draco::Status(draco::Status::DRACO_ERROR, "Unknown file type");
 }
 
 std::string DecodeFileBufferToMesh(draco::DecoderBuffer* buffer,
