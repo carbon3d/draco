@@ -33,7 +33,7 @@ class StlDecoder {
   Status DecodeFromBuffer(DecoderBuffer *buffer, Mesh *out_mesh);
  protected:
   DecoderBuffer *buffer() { return &buffer_; }
-  Status ParseHeader(bool* is_binary);
+  Status ParseHeader(bool force_binary, bool* is_binary);
   Status ParseAsciiFace(Vector3f* v0, Vector3f* v1, Vector3f* v2,
                         Vector3f* normal, bool* is_valid_triangle);
   Status ParseBinaryFace(Vector3f* v0, Vector3f* v1, Vector3f* v2,

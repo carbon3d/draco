@@ -56,13 +56,18 @@ Status StlDecoder::DecodeFromBuffer(DecoderBuffer *buffer, Mesh *out_mesh) {
   return DecodeInternal();
 }
 
-Status StlDecoder::ParseHeader(bool* is_binary) {
-  char ascii_buffer[5];
+Status StlDecoder::ParseHeader(bool force_binary, bool* is_binary) {
   parser::SkipWhitespace(&buffer_);
-  if (! buffer_.Decode(ascii_buffer, 5)) {
-    return Status(Status::IO_ERROR, "STL file has invalid header.");
+  bool is_ascii_file;
+  if (force_binary) {
+    is_ascii_file = false;
+  } else {
+    char ascii_buffer[5];
+    if (! buffer_.Decode(ascii_buffer, 5)) {
+      return Status(Status::IO_ERROR, "STL file has invalid header.");
+    }
+    is_ascii_file = ! strncmp(ascii_buffer, "solid", 5);
   }
-  bool is_ascii_file = ! strncmp(ascii_buffer, "solid ", 5);
   // If the file begins with "solid" it is likely an ascii stl file
   if (is_ascii_file) {
     std::string tmp_str;
@@ -182,17 +187,26 @@ Status StlDecoder::DecodeInternal() {
   std::vector<Vector3f> tmp_three_vec_storage;
   Status status(Status::OK);
   bool is_binary = false;
-  status = ParseHeader(&is_binary);
+  status = ParseHeader(false, &is_binary);
   if (! status.ok()) return status;
   if (! is_binary) {
     // For the ASCII formatted STL file we do not know how many triangles are specified in the file
-    // without reading the entire file.
+    // without reading the entire file.  We attempt to read as many ascii solids as possible.
+    // If we have an error while parsing the first ascii solid, we assume the file is a binary stl
+    // and fall back to that.
+    bool error_while_parsing_ascii = false;
+    bool is_first_solid = true;
     bool is_valid_triangle;
     Status status;
     while (1) {
       do {
         status = ParseAsciiFace(&tmp_v0, &tmp_v1, &tmp_v2, &tmp_norm, &is_valid_triangle);
-        if (! status.ok()) return status;
+        if (! status.ok()) {
+          // if we have an error while parsing the face data only assume it's a binary stl if this
+          // is the first solid
+          error_while_parsing_ascii = is_first_solid;
+          break;
+        }
         if (is_valid_triangle) {
           tmp_three_vec_storage.push_back(tmp_norm);
           tmp_three_vec_storage.push_back(tmp_v0);
@@ -200,11 +214,18 @@ Status StlDecoder::DecodeInternal() {
           tmp_three_vec_storage.push_back(tmp_v2);
         }
       } while (is_valid_triangle);
-      if (buffer_.remaining_size() < 5 || ! ParseHeader(&is_binary).ok() || is_binary) {
+      bool is_binary_local;
+      if (error_while_parsing_ascii || buffer_.remaining_size() < 5 || ! ParseHeader(false, &is_binary_local).ok() || is_binary_local) {
         break;
       }
-    } 
-    num_stl_faces_ = tmp_three_vec_storage.size() / 4;
+      is_first_solid = false;
+    }
+    if (error_while_parsing_ascii) {
+      status = ParseHeader(true, &is_binary);
+      if (! status.ok()) return status;
+    } else {
+      num_stl_faces_ = tmp_three_vec_storage.size() / 4;
+    }
   }
   out_mesh_->SetNumFaces(num_stl_faces_);
   out_mesh_->set_num_points(num_stl_faces_ * 3);

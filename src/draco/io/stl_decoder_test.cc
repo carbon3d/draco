@@ -73,6 +73,7 @@ TEST_F(StlDecoderTest, ValidBinarySTL) {
   test_decoding("teapot.stl", 946);
   test_decoding("40mmcube.stl", 12);
   test_decoding("square_15_15_250.STL", 12);
+  test_decoding("jczs_evil_mesh.stl", 12);
   
   std::vector<Vector3f> expected_verts;
   for (float i_z = 0; i_z < 2; ++i_z)
