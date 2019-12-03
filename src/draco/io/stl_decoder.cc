@@ -57,20 +57,18 @@ Status StlDecoder::DecodeFromBuffer(DecoderBuffer *buffer, Mesh *out_mesh) {
 
 Status StlDecoder::ParseHeader(bool force_binary, bool* is_binary, uint32_t* num_faces) {
   parser::SkipWhitespace(&buffer_);
-  bool is_ascii_file;
   if (force_binary) {
-    is_ascii_file = false;
+    *is_binary = true;
   } else {
     char ascii_buffer[5];
     if (! buffer_.Decode(ascii_buffer, 5)) {
       return Status(Status::IO_ERROR, "STL file has invalid header.");
     }
-    is_ascii_file = ! strncmp(ascii_buffer, "solid", 5);
+    *is_binary = strncmp(ascii_buffer, "solid", 5);
   }
   // If the file begins with "solid" it is likely an ascii stl file
-  if (is_ascii_file) {
+  if (! *is_binary) {
     std::string tmp_str;
-    (*is_binary) = false;
     int64_t buffer_seek_point = buffer_.decoded_size();
     int loop_counter = 0;
     do {
@@ -82,15 +80,15 @@ Status StlDecoder::ParseHeader(bool force_binary, bool* is_binary, uint32_t* num
       // If the file is not composed of a series of strings or we loop too much on this, it is likely
       // a binary stl.
       if (buffer_seek_point == buffer_.decoded_size() || loop_counter > 4) {
-        is_ascii_file = false;
+        *is_binary = true;
       }
       ++loop_counter;
-    } while (tmp_str != "facet" && is_ascii_file);
-    if (is_ascii_file) {
+    } while (tmp_str != "facet" && !*is_binary);
+    if (! *is_binary) {
       buffer_.StartDecodingFrom(buffer_seek_point);
     }
   }
-  if (! is_ascii_file) {
+  if (*is_binary) {
     buffer_.StartDecodingFrom(80);
     uint32_t tmp_num_faces = 0;
     if (!buffer_.Decode<uint32_t>(&tmp_num_faces)) {
