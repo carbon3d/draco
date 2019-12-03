@@ -83,7 +83,7 @@ Status StlDecoder::ParseHeader(bool force_binary, bool* is_binary, uint32_t* num
         *is_binary = true;
       }
       ++loop_counter;
-    } while (tmp_str != "facet" && !*is_binary);
+    } while (tmp_str != "facet" && ! *is_binary);
     if (! *is_binary) {
       buffer_.StartDecodingFrom(buffer_seek_point);
     }
@@ -95,7 +95,6 @@ Status StlDecoder::ParseHeader(bool force_binary, bool* is_binary, uint32_t* num
       return Status(Status::IO_ERROR, "Binary STL file has invalid header.");
     }
     *num_faces = tmp_num_faces;
-    (*is_binary) = true;
   }
   return Status(Status::OK);
 }
