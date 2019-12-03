@@ -38,6 +38,11 @@ class StlDecoder {
                         Vector3f* normal, bool* is_valid_triangle);
   Status ParseBinaryFace(Vector3f* v0, Vector3f* v1, Vector3f* v2,
                          Vector3f* normal);
+
+  // fills norm_and_verts with the ascii stl face data.
+  // num_faces is the number of faces
+  // should_attempt_binary is true iff the ascii parsing fails when it could still be a valid
+  //  binary stl
   Status ParseAsAscii(bool* should_attempt_binary, std::vector<Vector3f>* norm_and_verts, uint32_t* num_faces);
   Status DecodeInternal();
  private:

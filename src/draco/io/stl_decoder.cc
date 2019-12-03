@@ -203,7 +203,8 @@ Status StlDecoder::ParseAsAscii(bool* should_attempt_binary, std::vector<Vector3
     } while (is_valid_triangle);
     bool is_binary_local;
     uint32_t num_faces_local;
-    if (buffer_.remaining_size() < 5 || ! ParseHeader(false, &is_binary_local, &num_faces_local).ok() || is_binary_local) {
+    if (buffer_.remaining_size() < 5 || !ParseHeader(false, &is_binary_local, &num_faces_local).ok()
+        || is_binary_local) {
       break;
     }
     is_first_solid = false;
