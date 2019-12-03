@@ -227,10 +227,11 @@ Status StlDecoder::DecodeInternal() {
     bool attempt_binary = false;
     // Fills tmp_three_vec_storage with the face data.
     status = ParseAsAscii(&attempt_binary, &tmp_three_vec_storage, &num_faces);
-    // if the ascii parsing fales in a known way fall back to binary way.
+    // if the ascii parsing fales in a known way fall back to parsing it as a binary stl file
     if (attempt_binary) {
       status = ParseHeader(true, &is_binary, &num_faces);
       is_binary = true;
+      tmp_three_vec_storage.clear();
     }
     if (! status.ok()) return status;
   }
