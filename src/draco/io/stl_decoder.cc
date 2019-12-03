@@ -26,8 +26,7 @@
 namespace draco {
 
 StlDecoder::StlDecoder()
-    : num_stl_faces_(0),
-      attribute_element_types_(1, -1),
+    : attribute_element_types_(1, -1),
       out_mesh_(nullptr)
 {}
 
@@ -56,7 +55,7 @@ Status StlDecoder::DecodeFromBuffer(DecoderBuffer *buffer, Mesh *out_mesh) {
   return DecodeInternal();
 }
 
-Status StlDecoder::ParseHeader(bool force_binary, bool* is_binary) {
+Status StlDecoder::ParseHeader(bool force_binary, bool* is_binary, uint32_t* num_faces) {
   parser::SkipWhitespace(&buffer_);
   bool is_ascii_file;
   if (force_binary) {
@@ -71,7 +70,6 @@ Status StlDecoder::ParseHeader(bool force_binary, bool* is_binary) {
   // If the file begins with "solid" it is likely an ascii stl file
   if (is_ascii_file) {
     std::string tmp_str;
-    num_stl_faces_ = 0;
     (*is_binary) = false;
     int64_t buffer_seek_point = buffer_.decoded_size();
     int loop_counter = 0;
@@ -98,7 +96,7 @@ Status StlDecoder::ParseHeader(bool force_binary, bool* is_binary) {
     if (!buffer_.Decode<uint32_t>(&tmp_num_faces)) {
       return Status(Status::IO_ERROR, "Binary STL file has invalid header.");
     }
-    num_stl_faces_ = tmp_num_faces;
+    *num_faces = tmp_num_faces;
     (*is_binary) = true;
   }
   return Status(Status::OK);
@@ -179,56 +177,66 @@ Status StlDecoder::ParseAsciiFace(Vector3f* v0, Vector3f* v1, Vector3f* v2, Vect
   return status;
 }
 
-Status StlDecoder::DecodeInternal() {
+Status StlDecoder::ParseAsAscii(bool* should_attempt_binary, std::vector<Vector3f>* norm_and_verts,
+                                uint32_t* num_faces) {
+  // For the ASCII formatted STL file we do not know how many triangles are specified in the file
+  // without reading the entire file.  We attempt to read as many ascii solids as possible.
+  // If we have an error while parsing the first ascii solid within the first 80 bytes, we
+  // assume the file is a binary stl and fall back to that.
   Vector3f tmp_norm;
   Vector3f tmp_v0;
   Vector3f tmp_v1;
   Vector3f tmp_v2;
+  bool is_first_solid = true;
+  bool is_valid_triangle;
+  Status status;
+  while (1) {
+    do {
+      status = ParseAsciiFace(&tmp_v0, &tmp_v1, &tmp_v2, &tmp_norm, &is_valid_triangle);
+      if (! status.ok()) {
+        *should_attempt_binary = is_first_solid;
+        return status;
+      }
+      if (is_valid_triangle) {
+        norm_and_verts->push_back(tmp_norm);
+        norm_and_verts->push_back(tmp_v0);
+        norm_and_verts->push_back(tmp_v1);
+        norm_and_verts->push_back(tmp_v2);
+      }
+    } while (is_valid_triangle);
+    bool is_binary_local;
+    uint32_t num_faces_local;
+    if (buffer_.remaining_size() < 5 || ! ParseHeader(false, &is_binary_local, &num_faces_local).ok() || is_binary_local) {
+      break;
+    }
+    is_first_solid = false;
+  }
+  *num_faces = norm_and_verts->size() / 4;
+}
+
+Status StlDecoder::DecodeInternal() {
   std::vector<Vector3f> tmp_three_vec_storage;
   Status status(Status::OK);
   bool is_binary = false;
-  status = ParseHeader(false, &is_binary);
+  uint32_t num_faces;
+  status = ParseHeader(false, &is_binary, &num_faces);
   if (! status.ok()) return status;
+
+  // If we think the file could be ascii attempt to parse
   if (! is_binary) {
-    // For the ASCII formatted STL file we do not know how many triangles are specified in the file
-    // without reading the entire file.  We attempt to read as many ascii solids as possible.
-    // If we have an error while parsing the first ascii solid, we assume the file is a binary stl
-    // and fall back to that.
-    bool error_while_parsing_ascii = false;
-    bool is_first_solid = true;
-    bool is_valid_triangle;
-    Status status;
-    while (1) {
-      do {
-        status = ParseAsciiFace(&tmp_v0, &tmp_v1, &tmp_v2, &tmp_norm, &is_valid_triangle);
-        if (! status.ok()) {
-          // if we have an error while parsing the face data only assume it's a binary stl if this
-          // is the first solid
-          error_while_parsing_ascii = is_first_solid;
-          break;
-        }
-        if (is_valid_triangle) {
-          tmp_three_vec_storage.push_back(tmp_norm);
-          tmp_three_vec_storage.push_back(tmp_v0);
-          tmp_three_vec_storage.push_back(tmp_v1);
-          tmp_three_vec_storage.push_back(tmp_v2);
-        }
-      } while (is_valid_triangle);
-      bool is_binary_local;
-      if (error_while_parsing_ascii || buffer_.remaining_size() < 5 || ! ParseHeader(false, &is_binary_local).ok() || is_binary_local) {
-        break;
-      }
-      is_first_solid = false;
+    bool attempt_binary = false;
+    // Fills tmp_three_vec_storage with the face data.
+    status = ParseAsAscii(&attempt_binary, &tmp_three_vec_storage, &num_faces);
+    // if the ascii parsing fales in a known way fall back to binary way.
+    if (attempt_binary) {
+      status = ParseHeader(true, &is_binary, &num_faces);
+      is_binary = true;
     }
-    if (error_while_parsing_ascii) {
-      status = ParseHeader(true, &is_binary);
-      if (! status.ok()) return status;
-    } else {
-      num_stl_faces_ = tmp_three_vec_storage.size() / 4;
-    }
+    if (! status.ok()) return status;
   }
-  out_mesh_->SetNumFaces(num_stl_faces_);
-  out_mesh_->set_num_points(num_stl_faces_ * 3);
+
+  out_mesh_->SetNumFaces(num_faces);
+  out_mesh_->set_num_points(num_faces * 3);
 
   GeometryAttribute pos_va;
   pos_va.Init(GeometryAttribute::POSITION, nullptr, 3, DT_FLOAT32, false,
@@ -236,12 +244,17 @@ Status StlDecoder::DecodeInternal() {
   const int pos_att_id = out_mesh_->AddAttribute(pos_va, true, out_mesh_->num_points());
   PointAttribute *const pos_att = out_mesh_->attribute(pos_att_id);
   attribute_element_types_[pos_att_id] = MESH_VERTEX_ATTRIBUTE;
-  for (int i = 0; i < num_stl_faces_; ++i) {
+  for (int i = 0; i < num_faces; ++i) {
+    Vector3f tmp_norm;
+    Vector3f tmp_v0;
+    Vector3f tmp_v1;
+    Vector3f tmp_v2;
     // Read a triangle face
     if (is_binary) {
       status = ParseBinaryFace(&tmp_v0, &tmp_v1, &tmp_v2, &tmp_norm);
       if (! status.ok()) return status;
     } else {
+      // If it's valid ascii we have already cached the data in tmp_three_vec_storage
       tmp_norm = tmp_three_vec_storage[4 * i];
       tmp_v0 = tmp_three_vec_storage[4 * i + 1];
       tmp_v1 = tmp_three_vec_storage[4 * i + 2];
