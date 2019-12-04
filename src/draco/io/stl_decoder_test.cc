@@ -72,12 +72,16 @@ class StlDecoderTest : public ::testing::Test {
 TEST_F(StlDecoderTest, ValidBinarySTL) {
   test_decoding("teapot.stl", 946);
   test_decoding("40mmcube.stl", 12);
+  test_decoding("square_15_15_250.STL", 12);
+  test_decoding("jczs_evil_mesh.stl", 12);
+  
   std::vector<Vector3f> expected_verts;
   for (float i_z = 0; i_z < 2; ++i_z)
     for (float i_y = 0; i_y < 2; ++i_y)
       for (float i_x = 0; i_x < 2; ++i_x)
         expected_verts.push_back({40.0f * (i_x - 0.5f), 40.0f * (i_y - 0.5f), 40.0f * i_z});
   test_decoding_with_points("40mmcube.stl", 12, expected_verts);
+  
 }
 
 TEST_F(StlDecoderTest, ValidAsciiSTL) {

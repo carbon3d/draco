@@ -33,14 +33,19 @@ class StlDecoder {
   Status DecodeFromBuffer(DecoderBuffer *buffer, Mesh *out_mesh);
  protected:
   DecoderBuffer *buffer() { return &buffer_; }
-  Status ParseHeader(bool* is_binary);
+  Status ParseHeader(bool force_binary, bool* is_binary, uint32_t* num_faces);
   Status ParseAsciiFace(Vector3f* v0, Vector3f* v1, Vector3f* v2,
                         Vector3f* normal, bool* is_valid_triangle);
   Status ParseBinaryFace(Vector3f* v0, Vector3f* v1, Vector3f* v2,
                          Vector3f* normal);
+
+  // fills norm_and_verts with the ascii stl face data.
+  // num_faces is the number of faces
+  // should_attempt_binary is true iff the ascii parsing fails when it could still be a valid
+  //  binary stl
+  Status ParseAsAscii(bool* should_attempt_binary, std::vector<Vector3f>* norm_and_verts, uint32_t* num_faces);
   Status DecodeInternal();
  private:
-  uint32_t num_stl_faces_;
   DecoderBuffer buffer_;
   std::vector<int8_t> attribute_element_types_;
   // Data structure that stores the decoded data. |out_mesh_| must be set
