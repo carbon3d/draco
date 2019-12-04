@@ -187,6 +187,7 @@ Status StlDecoder::ParseAsAscii(bool* should_attempt_binary, std::vector<Vector3
   bool is_first_solid = true;
   bool is_valid_triangle;
   Status status;
+  *should_attempt_binary = false;
   while (1) {
     do {
       status = ParseAsciiFace(&tmp_v0, &tmp_v1, &tmp_v2, &tmp_norm, &is_valid_triangle);
@@ -210,6 +211,7 @@ Status StlDecoder::ParseAsAscii(bool* should_attempt_binary, std::vector<Vector3
     is_first_solid = false;
   }
   *num_faces = norm_and_verts->size() / 4;
+  return Status(Status::OK);
 }
 
 Status StlDecoder::DecodeInternal() {
@@ -225,7 +227,7 @@ Status StlDecoder::DecodeInternal() {
     bool attempt_binary = false;
     // Fills tmp_three_vec_storage with the face data.
     status = ParseAsAscii(&attempt_binary, &tmp_three_vec_storage, &num_faces);
-    // if the ascii parsing fales in a known way fall back to parsing it as a binary stl file
+    // if the ascii parsing fails in a known way fall back to parsing it as a binary stl file
     if (attempt_binary) {
       status = ParseHeader(true, &is_binary, &num_faces);
       is_binary = true;
