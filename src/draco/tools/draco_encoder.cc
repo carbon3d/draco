@@ -405,7 +405,7 @@ int main(int argc, char **argv) {
   else
     ret = EncodePointCloudToFile(*pc.get(), options.output, &encoder);
 
-  if (ret != -1 && options.compression_level < 10) {
+  if (ret != -1 && options.compression_level < 10 && !options.use_carbon_quantization) {
     printf(
         "For better compression, increase the compression level up to '-cl 10' "
         ".\n\n");
