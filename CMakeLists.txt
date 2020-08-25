@@ -1,15 +1,19 @@
 cmake_minimum_required(VERSION 3.5 FATAL_ERROR)
 
+# Draco requires C++11.
+set(CMAKE_CXX_STANDARD 11)
+project(draco C CXX)
+
 if(NOT CMAKE_BUILD_TYPE AND NOT IGNORE_EMPTY_BUILD_TYPE)
   if(CMAKE_CURRENT_LIST_FILE STREQUAL CMAKE_PARENT_LIST_FILE)
-    message(INFO "|Draco: ignoring empty build type, forcing release mode.")
-    set(CMAKE_BUILD_TYPE
-        "Release"
-        CACHE STRING "Draco overridden build type" FORCE)
+    if(NOT MSVC AND NOT XCODE)
+      message(INFO "|Draco: ignoring empty build type, forcing release mode.")
+      set(CMAKE_BUILD_TYPE
+          "Release"
+          CACHE STRING "Draco overridden build type" FORCE)
+    endif()
   endif()
 endif()
-
-project(draco C CXX)
 
 set(draco_root "${CMAKE_CURRENT_SOURCE_DIR}")
 set(draco_src_root "${draco_root}/src/draco")
@@ -27,11 +31,9 @@ endif()
 include(CMakePackageConfigHelpers)
 include("${draco_root}/cmake/compiler_flags.cmake")
 include("${draco_root}/cmake/draco_features.cmake")
+include("${draco_root}/cmake/draco_tests.cmake")
 include("${draco_root}/cmake/sanitizers.cmake")
 include("${draco_root}/cmake/util.cmake")
-
-# Draco requires C++11 support.
-require_cxx_flag_nomsvc("-std=c++11" YES)
 
 option(ENABLE_CCACHE "Enable ccache support." OFF)
 option(ENABLE_DISTCC "Enable distcc support." OFF)
@@ -57,9 +59,12 @@ option(BUILD_MAYA_PLUGIN "Build plugin library for Maya." OFF)
 option(BUILD_USD_PLUGIN "Build plugin library for USD." OFF)
 option(ENABLE_EMBIND "Build the embind based bindings." OFF)
 
-if(${CMAKE_CXX_COMPILER_ID} MATCHES GNU
+if((${CMAKE_CXX_COMPILER_ID} STREQUAL "GNU"
    AND ${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS 5)
-  message(WARNING "GNU/GCC VERSION LESS THAN 5, ENABLING COMPATIBILITY MODE.")
+   OR (${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang"
+   AND ${CMAKE_CXX_COMPILER_VERSION} VERSION_LESS 4))
+  message(WARNING
+          "GNU/GCC < v5 or Clang/LLVM < v4, ENABLING COMPATIBILITY MODE.")
   draco_enable_feature(FEATURE "DRACO_OLD_GCC")
 endif()
 
@@ -182,10 +187,6 @@ endif()
 if(draco_git_desc STREQUAL "")
   set(draco_git_desc "unreleased")
 endif()
-configure_file("${draco_root}/cmake/draco_version.cc.cmake"
-               "${draco_build_dir}/draco_version.cc")
-configure_file("${draco_root}/cmake/draco_version.h.cmake"
-               "${draco_build_dir}/draco_version.h" COPYONLY)
 
 if(EMSCRIPTEN)
   include(FindPythonInterp)
@@ -198,43 +199,6 @@ if(EMSCRIPTEN)
     message(
       FATAL_ERROR
         "The EMSCRIPTEN environment variable must be set. See README.md.")
-  endif()
-else()
-  if(ENABLE_TESTS)
-    if(MSVC)
-      # Default runtime selected by cmake collides with Googletest settings,
-      # just force all Draco builds to be static (instead of dll/msvcrt).
-      include("${draco_root}/cmake/msvc_runtime.cmake")
-    endif()
-    # Googletest defaults.
-    set(GTEST_SOURCE_DIR
-        "${draco_root}/../googletest"
-        CACHE STRING "Path to googletest source directory")
-    set(
-      GTEST_BUILD_DIR
-      "${draco_build_dir}/googletest"
-      CACHE STRING
-            "Path to directory where googletest will be configured and built.")
-
-    # Confirm Googletest is where expected.
-    if(NOT EXISTS "${GTEST_SOURCE_DIR}/CMakeLists.txt")
-      set(ENABLE_TESTS OFF)
-      message("Tests disabled: Google test CMakeLists.txt does not exist.")
-    else()
-      if(APPLE AND BUILD_SHARED_LIBS)
-        # Silence an RPATH warning emitted during processing of Googletest cmake
-        # files.
-        set(CMAKE_MACOSX_RPATH 1)
-      endif()
-
-      set(DRACO_TEST_DATA_DIR "${draco_root}/testdata")
-      configure_file("${draco_root}/cmake/draco_test_config.h.cmake"
-                     "${draco_build_dir}/testing/draco_test_config.h")
-      add_subdirectory("${GTEST_SOURCE_DIR}" "${GTEST_BUILD_DIR}"
-                       EXCLUDE_FROM_ALL)
-    endif()
-
-    include_directories("${GTEST_SOURCE_DIR}")
   endif()
 endif()
 
@@ -411,7 +375,6 @@ set(
   draco_compression_mesh_dec_sources
   "${draco_src_root}/compression/mesh/mesh_decoder.cc"
   "${draco_src_root}/compression/mesh/mesh_decoder.h"
-  "${draco_src_root}/compression/mesh/mesh_decoder_helpers.h"
   "${draco_src_root}/compression/mesh/mesh_edgebreaker_decoder.cc"
   "${draco_src_root}/compression/mesh/mesh_edgebreaker_decoder.h"
   "${draco_src_root}/compression/mesh/mesh_edgebreaker_decoder_impl.cc"
@@ -439,7 +402,6 @@ set(
   "${draco_src_root}/compression/mesh/mesh_edgebreaker_traversal_valence_encoder.h"
   "${draco_src_root}/compression/mesh/mesh_encoder.cc"
   "${draco_src_root}/compression/mesh/mesh_encoder.h"
-  "${draco_src_root}/compression/mesh/mesh_encoder_helpers.h"
   "${draco_src_root}/compression/mesh/mesh_sequential_encoder.cc"
   "${draco_src_root}/compression/mesh/mesh_sequential_encoder.h")
 
@@ -507,8 +469,14 @@ set(draco_core_sources
     "${draco_src_root}/core/vector_d.h")
 
 set(draco_io_sources
+    "${draco_src_root}/io/file_reader_factory.cc"
+    "${draco_src_root}/io/file_reader_factory.h"
+    "${draco_src_root}/io/file_reader_interface.h"
     "${draco_src_root}/io/file_utils.cc"
     "${draco_src_root}/io/file_utils.h"
+    "${draco_src_root}/io/file_writer_factory.cc"
+    "${draco_src_root}/io/file_writer_factory.h"
+    "${draco_src_root}/io/file_writer_interface.h"
     "${draco_src_root}/io/mesh_io.cc"
     "${draco_src_root}/io/mesh_io.h"
     "${draco_src_root}/io/obj_decoder.cc"
@@ -530,7 +498,11 @@ set(draco_io_sources
     "${draco_src_root}/io/stl_encoder.cc"
     "${draco_src_root}/io/stl_encoder.h"
     "${draco_src_root}/io/point_cloud_io.cc"
-    "${draco_src_root}/io/point_cloud_io.h")
+    "${draco_src_root}/io/point_cloud_io.h"
+    "${draco_src_root}/io/stdio_file_reader.cc"
+    "${draco_src_root}/io/stdio_file_reader.h"
+    "${draco_src_root}/io/stdio_file_writer.cc"
+    "${draco_src_root}/io/stdio_file_writer.h")
 
 set(draco_mesh_sources
     "${draco_src_root}/mesh/corner_table.cc"
@@ -623,6 +595,7 @@ set(
   "${draco_src_root}/javascript/emscripten/draco_animation_encoder_glue_wrapper.cc"
   )
 
+
 set(
   draco_test_sources
   "${draco_src_root}/animation/keyframe_animation_encoding_test.cc"
@@ -698,6 +671,8 @@ elseif (EMSCRIPTEN AND ENABLE_JS_GLUE)
   require_compiler_flag("-s PRECISE_F32=1" YES)
   if(ENABLE_WASM)
     require_compiler_flag("-s WASM=1" YES)
+  else()
+    require_compiler_flag("-s WASM=0" YES)
   endif()
   if(IE_COMPATIBLE)
     require_compiler_flag("-s LEGACY_VM_SUPPORT=1" YES)
@@ -800,13 +775,11 @@ elseif (EMSCRIPTEN AND ENABLE_JS_GLUE)
       ${draco_compression_point_cloud_dec_sources}
       ${draco_core_sources}
       ${draco_dec_config_sources}
-      ${draco_io_sources}
       ${draco_mesh_sources}
       ${draco_metadata_dec_sources}
       ${draco_metadata_sources}
       ${draco_point_cloud_sources}
-      ${draco_points_dec_sources}
-      ${draco_version_sources})
+      ${draco_points_dec_sources})
 
   set(draco_encoder_src
       ${draco_attributes_sources}
@@ -820,13 +793,11 @@ elseif (EMSCRIPTEN AND ENABLE_JS_GLUE)
       ${draco_compression_point_cloud_enc_sources}
       ${draco_core_sources}
       ${draco_enc_config_sources}
-      ${draco_io_sources}
       ${draco_mesh_sources}
       ${draco_metadata_enc_sources}
       ${draco_metadata_sources}
       ${draco_point_cloud_sources}
-      ${draco_points_enc_sources}
-      ${draco_version_sources})
+      ${draco_points_enc_sources})
 
   add_executable(draco_decoder ${draco_js_dec_sources} ${draco_decoder_src})
   append_link_flag_to_target(draco_decoder
@@ -964,7 +935,6 @@ else()
 
   # Library targets that consume the object collections.
   add_library(dracodec
-              ${draco_version_sources}
               $<TARGET_OBJECTS:draco_attributes>
               $<TARGET_OBJECTS:draco_compression_attributes_dec>
               $<TARGET_OBJECTS:draco_compression_decode>
@@ -983,7 +953,6 @@ else()
               $<TARGET_OBJECTS:draco_point_cloud>
               $<TARGET_OBJECTS:draco_points_dec>)
   add_library(dracoenc
-              ${draco_version_sources}
               $<TARGET_OBJECTS:draco_attributes>
               $<TARGET_OBJECTS:draco_compression_attributes_enc>
               $<TARGET_OBJECTS:draco_compression_entropy>
@@ -1002,7 +971,6 @@ else()
               $<TARGET_OBJECTS:draco_point_cloud>
               $<TARGET_OBJECTS:draco_points_enc>)
   add_library(draco
-              ${draco_version_sources}
               $<TARGET_OBJECTS:draco_attributes>
               $<TARGET_OBJECTS:draco_compression_attributes_dec>
               $<TARGET_OBJECTS:draco_compression_attributes_enc>
@@ -1031,13 +999,12 @@ else()
               $<TARGET_OBJECTS:draco_points_dec>
               $<TARGET_OBJECTS:draco_points_enc>)
   if(BUILD_UNITY_PLUGIN)
-    set(UNITY_TYPE MODULE)
+    set(unity_decoder_lib_type MODULE)
     if(IOS)
-      set(UNITY_TYPE STATIC)
+      set(unity_decoder_lib_type STATIC)
     endif()
-    add_library(dracodec_unity
-                ${UNITY_TYPE}
-                ${draco_version_sources}
+    list(APPEND draco_header_only_targets dracodec_unity)
+    add_library(dracodec_unity ${unity_decoder_lib_type}
                 $<TARGET_OBJECTS:draco_attributes>
                 $<TARGET_OBJECTS:draco_compression_attributes_dec>
                 $<TARGET_OBJECTS:draco_compression_bit_coders>
@@ -1062,7 +1029,6 @@ else()
 
   if(BUILD_MAYA_PLUGIN)
     add_library(draco_maya_wrapper MODULE
-                ${draco_version_sources}
                 $<TARGET_OBJECTS:draco_attributes>
                 $<TARGET_OBJECTS:draco_compression_attributes_dec>
                 $<TARGET_OBJECTS:draco_compression_attributes_enc>
@@ -1093,9 +1059,9 @@ else()
     endif()
   endif()
 
-  set(draco_header_only_targets draco_compression_attributes_pred_schemes_dec
-                                draco_compression_mesh_traverser
-                                draco_dec_config draco_enc_config)
+  list(APPEND draco_header_only_targets
+       draco dracodec dracoenc draco_compression_attributes_pred_schemes_dec
+       draco_compression_mesh_traverser draco_dec_config draco_enc_config)
 
   # For now, enable deduplication for both encoder and decoder.
   # TODO(ostava): Support for disabling attribute deduplication for the C++
@@ -1136,16 +1102,15 @@ else()
   endif()
 
   # Draco app targets.
-  add_executable(draco_decoder "${draco_src_root}/tools/draco_decoder.cc")
+  add_executable(draco_decoder "${draco_src_root}/tools/draco_decoder.cc"
+                                ${draco_io_sources})
   target_link_libraries(draco_decoder PRIVATE dracodec)
-  add_executable(draco_encoder "${draco_src_root}/tools/draco_encoder.cc")
+  add_executable(draco_encoder "${draco_src_root}/tools/draco_encoder.cc"
+                                ${draco_io_sources})
   target_link_libraries(draco_encoder PRIVATE draco)
 
   if(ENABLE_TESTS)
-    add_executable(draco_tests ${draco_test_sources})
-    include_directories("${draco_build_dir}"
-                        "${GTEST_SOURCE_DIR}/googletest/include")
-    target_link_libraries(draco_tests draco gtest)
+    draco_setup_test_targets()
   endif()
 
   # Collect all of the header files in the tree, and add an install rule for

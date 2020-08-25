@@ -6,6 +6,7 @@ interface DecoderBuffer {
   void Init([Const] byte[] data, unsigned long data_size);
 };
 
+// TODO(fgalligan): Can we remove this?
 enum draco_AttributeTransformType {
   "draco::ATTRIBUTE_INVALID_TRANSFORM",
   "draco::ATTRIBUTE_NO_TRANSFORM",
@@ -37,6 +38,22 @@ enum draco_EncodedGeometryType {
   "draco::INVALID_GEOMETRY_TYPE",
   "draco::POINT_CLOUD",
   "draco::TRIANGULAR_MESH"
+};
+
+enum draco_DataType {
+  "draco::DT_INVALID",
+  "draco::DT_INT8",
+  "draco::DT_UINT8",
+  "draco::DT_INT16",
+  "draco::DT_UINT16",
+  "draco::DT_INT32",
+  "draco::DT_UINT32",
+  "draco::DT_INT64",
+  "draco::DT_UINT64",
+  "draco::DT_FLOAT32",
+  "draco::DT_FLOAT64",
+  "draco::DT_BOOL",
+  "draco::DT_TYPES_COUNT"
 };
 
 [Prefix="draco::"]
@@ -202,6 +219,11 @@ interface Decoder {
   long GetTriangleStripsFromMesh([Ref, Const] Mesh m,
                                  DracoInt32Array strip_values);
 
+  boolean GetTrianglesUInt16Array([Ref, Const] Mesh m,
+                                  long out_size, VoidPtr out_values);
+  boolean GetTrianglesUInt32Array([Ref, Const] Mesh m,
+                                  long out_size, VoidPtr out_values);
+
   boolean GetAttributeFloat([Ref, Const] PointAttribute pa,
                             long att_index,
                             DracoFloat32Array out_values);
@@ -233,6 +255,11 @@ interface Decoder {
   boolean GetAttributeUInt32ForAllPoints([Ref, Const] PointCloud pc,
                                          [Ref, Const] PointAttribute pa,
                                          DracoUInt32Array out_values);
+
+  boolean GetAttributeDataArrayForAllPoints([Ref, Const] PointCloud pc,
+                                            [Ref, Const] PointAttribute pa,
+                                            draco_DataType data_type,
+                                            long out_size, VoidPtr out_values);
 
   void SkipAttributeTransform(draco_GeometryAttribute_Type att_type);
 };
