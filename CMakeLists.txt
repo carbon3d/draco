@@ -640,9 +640,6 @@ set(
   "${draco_src_root}/compression/mesh/mesh_quantization_carbon_test.cc"
   )
 
-set(draco_version_sources "${draco_build_dir}/draco_version.cc"
-                          "${draco_build_dir}/draco_version.h")
-
 set(draco_unity_plug_sources "${draco_src_root}/unity/draco_unity_plugin.cc"
                              "${draco_src_root}/unity/draco_unity_plugin.h")
 
