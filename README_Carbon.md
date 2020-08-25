@@ -26,6 +26,17 @@ make
 
 You will need to find the right path the the Emscripten.cmake which depends on where you installed emscripten.  Also, remember that this will only work if you have setup the environment appropriately.  Hopefully at this point you have compiled code.  In the build directory there should be a number of biproducts from the build and the two files, DracoEncoderEmbind.js  DracoEncoderEmbind.wasm.  If you have those, you are doing great.  We copy those files into c3d/js/src/common/draco/ to make the javascript availble to us.
 
+
+********WARNING***********
+
+You may need to manually modify the header of the generated js file with the diff:
+-  var _scriptDir = import.meta.url;
+-  
++  var _scriptDir = typeof document !== 'undefined' && document.currentScript ? document.currentScript.src : undefined; 
+
+
+
+
 ## Example Code
 
 There is a (terrible) javascript example at: draco/CarbonDracoExample.html
@@ -89,3 +100,4 @@ We've also added a few extra classes and functions to extend the functionality o
 * MeshQuantizationCarbon
 
   MeshQuantizationCarbon is a class for calculating our desired quantization of the mesh.  It has several getter methods and one setter method, FillFromMesh(Mesh mesh, float quantization_scale_mm), which accepts a Mesh object and our desired quantization scale in mm (the spacing of the gridding when quantizing vertex locations) and fills in the quantization parameters used by draco.
+
