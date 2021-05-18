@@ -14,13 +14,19 @@ After you have installed Emscripten you will need to setup your environment.  Th
 source /PATH/TO/emsdk/emsdk_env.sh
 ```
 
+You will also need to set your environment variable EMSCRIPTEN to be the directory that contains all the binaries for emscripten to run.
+```
+export EMSCRIPTEN=/PATH/TO/emsdk/upstream/emscripten/
+```
+
+
 Once that is done, to build the webassembly type:
 
 ```bash
 cd /path/to/draco
 mkdir build
 cd build
-cmake .. -DCMAKE_TOOLCHAIN_FILE=/PATH/TO/YOUR/emsdk/emscripten/SOMEVERSIONNUMBER/cmake/Modules/Platform/Emscripten.cmake -DENABLE_WASM=ON -DENABLE_EMBIND=ON ..
+cmake .. -DCMAKE_TOOLCHAIN_FILE=/PATH/TO/YOUR/emsdk/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DENABLE_WASM=ON -DENABLE_EMBIND=ON ..
 make
 ```
 
