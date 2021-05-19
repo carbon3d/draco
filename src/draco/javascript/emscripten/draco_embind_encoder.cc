@@ -215,11 +215,11 @@ int Encoder::GetNumberOfEncodedFaces() { return encoder_.num_encoded_faces(); }
 std::array<uint32_t, 3> MakePointOrderDeterministic(const std::array<uint32_t, 3>& pnts) {
   int start_ind = -1;
   if (pnts[0] == pnts[1]) {
-    start_ind = 2;
+    start_ind = pnts[0] < pnts[2] ? 0 : 2;
   } else if (pnts[1] == pnts[2]) {
-    start_ind = 0;
+    start_ind = pnts[1] < pnts[0] ? 1 : 0;
   } else if (pnts[2] == pnts[0]) {
-    start_ind = 1;
+    start_ind = pnts[1] < pnts[2] ? 1 : 2;
   }
   if (start_ind < 0) {
     start_ind = pnts[0] < pnts[1] ? 0 : 1;

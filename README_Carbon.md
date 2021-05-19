@@ -2,6 +2,8 @@
 
 The standard draco bindings were fairly limitted and have a use after free error, see [the draco bindings bug report](https://github.com/google/draco/issues/513), so they have been extended to provide the needed functionality and not have this subtle bug.  The bug is fairly pernicious, so it required a bit of a rewrite to make work and a slight changing of the draco API.
 
+This bug has been fixed a couple years later.  If you want to switch to using the bindings that draco provides, go for it!
+
 
 ## Building the code
 Draco uses the cmake build system.  To compile the webassembly code it uses the [emscripten library](https://emscripten.org).
