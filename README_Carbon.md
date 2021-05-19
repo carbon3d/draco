@@ -19,7 +19,6 @@ You will also need to set your environment variable EMSCRIPTEN to be the directo
 export EMSCRIPTEN=/PATH/TO/emsdk/upstream/emscripten/
 ```
 
-
 Once that is done, to build the webassembly type:
 
 ```bash
@@ -39,8 +38,6 @@ You may need to manually modify the header of the generated js file with the dif
 -  var _scriptDir = import.meta.url;
 -  
 +  var _scriptDir = typeof document !== 'undefined' && document.currentScript ? document.currentScript.src : undefined; 
-
-
 
 
 ## Example Code
