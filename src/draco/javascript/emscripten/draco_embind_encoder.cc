@@ -17,7 +17,11 @@
 
 #include <math.h>
 #include <stdlib.h>
+
+#include <algorithm>
+#include <array>
 #include <iostream>
+#include <vector>
 
 #include "draco/compression/encode.h"
 #include "draco/compression/mesh/mesh_quantization_carbon.h"
@@ -208,6 +212,26 @@ int Encoder::GetNumberOfEncodedPoints() {
 int Encoder::GetNumberOfEncodedFaces() { return encoder_.num_encoded_faces(); }
 
 
+std::array<uint32_t, 3> MakePointOrderDeterministic(const std::array<uint32_t, 3>& pnts) {
+  int start_ind = -1;
+  if (pnts[0] == pnts[1]) {
+    start_ind = pnts[0] < pnts[2] ? 0 : 2;
+  } else if (pnts[1] == pnts[2]) {
+    start_ind = pnts[1] < pnts[0] ? 1 : 0;
+  } else if (pnts[2] == pnts[0]) {
+    start_ind = pnts[1] < pnts[2] ? 1 : 2;
+  }
+  if (start_ind < 0) {
+    start_ind = pnts[0] < pnts[1] ? 0 : 1;
+    start_ind = pnts[start_ind] < pnts[2] ? start_ind : 2;
+  }
+  std::array<uint32_t, 3> tmp;
+  for (int i = 0; i < 3; ++i) {
+    tmp[i] = pnts[(start_ind + i) % 3];
+  }
+  return tmp;
+}
+
 struct SimpleMesh {
   std::vector<uint32_t> triangles;
   std::vector<float> positions;
@@ -220,19 +244,70 @@ struct SimpleMesh {
   void FillFromMesh(draco::Mesh* mesh) {
     triangles.resize(mesh->num_faces() * 3);
     positions.resize(mesh->num_points() * 3);
-    for (int i_face = 0; i_face < mesh->num_faces(); ++i_face) {
-      draco::Mesh::Face face = mesh->face(draco::FaceIndex(i_face));
-      for (int i_vert = 0; i_vert < 3; ++i_vert) {
-        triangles[3 * i_face + i_vert] = face[i_vert].value();
+    const draco::GeometryMetadata * meta_data = mesh->GetMetadata();
+    std::string version_string;
+    if (meta_data && meta_data->GetEntryString("carbon_draco_version", &version_string)
+	&& version_string == "order_guaranteed_0") {
+      std::cout << "CARBON_DRACO_VERSION=order_guaranteed_0" << std::endl;
+      const draco::PointAttribute* const pos_att =
+        mesh->GetNamedAttribute(draco::GeometryAttribute::POSITION);
+      const draco::PointAttribute* const pos_ind_att =
+        mesh->GetNamedAttribute(draco::GeometryAttribute::GENERIC);
+      std::vector<uint32_t> point_map(mesh->num_points());
+      for (int q = 0; q < mesh->num_points(); ++q) {
+        point_map[q] = q;
       }
-    }
-    const int pos_att_id = mesh->GetNamedAttributeId(draco::GeometryAttribute::POSITION);
-    const auto *const pos_att = mesh->attribute(pos_att_id);
-    for (int i_pnt = 0; i_pnt < mesh->num_points(); ++i_pnt) {
-      draco::Vector3f vs;
-      pos_att->GetMappedValue(draco::PointIndex(i_pnt), &vs);
-      for (int i_dim = 0; i_dim < 3; ++i_dim) {
-        positions[3 * i_pnt + i_dim] = vs[i_dim];
+      std::vector<std::array<uint32_t, 3>> tris(mesh->num_faces());
+      for (size_t i_point = 0; i_point < mesh->num_points(); ++i_point) {
+        float tmp_vert[3];
+        pos_att->GetMappedValue(draco::PointIndex(i_point), &tmp_vert);
+        pos_ind_att->GetMappedValue(draco::PointIndex(i_point), &(point_map[i_point]));
+	int point_index = point_map[i_point];
+        positions[3 * point_index] = tmp_vert[0];
+        positions[3 * point_index + 1] = tmp_vert[1];
+        positions[3 * point_index + 2] = tmp_vert[2];
+      }
+      for (size_t i_face = 0; i_face < mesh->num_faces(); ++i_face) {
+        draco::Mesh::Face face = mesh->face(draco::FaceIndex(i_face));
+        std::array<uint32_t, 3> points = {point_map[face[0].value()],
+					  point_map[face[1].value()],
+					  point_map[face[2].value()]};
+        points = MakePointOrderDeterministic(points);
+        for (int i = 0; i < 3; ++i) {
+          tris[i_face][i] = points[i];
+        }
+      }
+      // sort the triangles
+      auto sort_function = [](const std::array<uint32_t, 3>& a,
+                              const std::array<uint32_t, 3>& b) {
+        for (int i = 0; i < 3; ++i) {
+          if (a[i] == b[i]) continue;
+          return a[i] < b[i];
+        }
+        return false;
+      };
+      std::sort(tris.begin(), tris.end(), sort_function);
+      for (int i_tri = 0; i_tri < tris.size(); ++i_tri) {
+	triangles[i_tri * 3] = tris[i_tri][0];
+	triangles[i_tri * 3 + 1] = tris[i_tri][1];
+	triangles[i_tri * 3 + 2] = tris[i_tri][2];
+      }
+    } else {
+      std::cout << "CARBON_DRACO_VERSION=default" << std::endl;      
+      const int pos_att_id = mesh->GetNamedAttributeId(draco::GeometryAttribute::POSITION);
+      const auto *const pos_att = mesh->attribute(pos_att_id);
+      for (int i_pnt = 0; i_pnt < mesh->num_points(); ++i_pnt) {
+	draco::Vector3f vs;
+	pos_att->GetMappedValue(draco::PointIndex(i_pnt), &vs);
+	for (int i_dim = 0; i_dim < 3; ++i_dim) {
+	  positions[3 * i_pnt + i_dim] = vs[i_dim];
+	}
+      }
+      for (int i_face = 0; i_face < mesh->num_faces(); ++i_face) {
+	draco::Mesh::Face face = mesh->face(draco::FaceIndex(i_face));
+	for (int i_vert = 0; i_vert < 3; ++i_vert) {
+	  triangles[3 * i_face + i_vert] = face[i_vert].value();
+	}
       }
     }
   }

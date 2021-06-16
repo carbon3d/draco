@@ -2,10 +2,9 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <script type="text/javascript" src="./build/DracoEncoderEmbind.js"></script>
-
-    <script>
+    <script type="module">
       "use strict";
+      import DracoEncoderEmbind from "./build/DracoEncoderEmbind.js";
       async function LoadFileToBuffer(file_object, destination_array, read_block_size=8192*8192) {
 	  let promise = new Promise(function(resolve, reject) {
 	      let file_reader = new FileReader();
@@ -43,9 +42,10 @@
       console.log("Creating our encoder module");
       // This creates our webassembly module.  Our C++ code exists as members and
       // methods of this object
-      var OurEncoderModule = DracoEncoderEmbind(Module);
-
-      function onEncodeClick() {
+      var OurEncoderModule = await DracoEncoderEmbind();
+      window.DracoEncoderEmbind = DracoEncoderEmbind;
+      window.OurEncoderModule = OurEncoderModule;
+      window.onEncodeClick = function onEncodeClick() {
 	  let decode_t0 = performance.now();
 	  let decoder_buffer_owner = new OurEncoderModule.DecoderBufferOwner(
 	      document.getElementById("fileItem").files[0].size);

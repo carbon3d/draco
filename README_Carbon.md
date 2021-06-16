@@ -2,6 +2,8 @@
 
 The standard draco bindings were fairly limitted and have a use after free error, see [the draco bindings bug report](https://github.com/google/draco/issues/513), so they have been extended to provide the needed functionality and not have this subtle bug.  The bug is fairly pernicious, so it required a bit of a rewrite to make work and a slight changing of the draco API.
 
+This bug has been fixed a couple years later.  If you want to switch to using the bindings that draco provides, go for it!
+
 
 ## Building the code
 Draco uses the cmake build system.  To compile the webassembly code it uses the [emscripten library](https://emscripten.org).
@@ -14,13 +16,18 @@ After you have installed Emscripten you will need to setup your environment.  Th
 source /PATH/TO/emsdk/emsdk_env.sh
 ```
 
+You will also need to set your environment variable EMSCRIPTEN to be the directory that contains all the binaries for emscripten to run.
+```
+export EMSCRIPTEN=/PATH/TO/emsdk/upstream/emscripten/
+```
+
 Once that is done, to build the webassembly type:
 
 ```bash
 cd /path/to/draco
 mkdir build
 cd build
-cmake .. -DCMAKE_TOOLCHAIN_FILE=/PATH/TO/YOUR/emsdk/emscripten/SOMEVERSIONNUMBER/cmake/Modules/Platform/Emscripten.cmake -DENABLE_WASM=ON -DENABLE_EMBIND=ON ..
+cmake .. -DCMAKE_TOOLCHAIN_FILE=/PATH/TO/YOUR/emsdk/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake -DENABLE_WASM=ON -DENABLE_EMBIND=ON ..
 make
 ```
 
@@ -33,8 +40,6 @@ You may need to manually modify the header of the generated js file with the dif
 -  var _scriptDir = import.meta.url;
 -  
 +  var _scriptDir = typeof document !== 'undefined' && document.currentScript ? document.currentScript.src : undefined; 
-
-
 
 
 ## Example Code
